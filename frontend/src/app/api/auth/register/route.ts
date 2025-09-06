@@ -1,58 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
+import { strapiAPI } from "@/lib/strapi";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, password, firstName, lastName, phone, address, dateOfBirth, gender, heardAboutUs } = body;
+    const { email, password, firstName, lastName } = body;
 
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
+    // Register user with Strapi
+    const result = await strapiAPI.register({
+      email,
+      username: email, // Use email as username
+      password,
+      firstName,
+      lastName,
     });
-
-    if (existingUser) {
-      return NextResponse.json({ error: "User already exists" }, { status: 400 });
-    }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 12);
-
-    // Create user
-    const user = await prisma.user.create({
-      data: {
-        email,
-        username: email, // Use email as username
-        password: hashedPassword,
-        firstName,
-        lastName,
-        phone,
-        address,
-        dateOfBirth: new Date(dateOfBirth),
-        gender: gender.toUpperCase().replace("-", "_"),
-        heardAboutUs: heardAboutUs.toUpperCase().replace("-", "_"),
-        confirmed: true, // Auto-confirm for now
-      },
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        role: true,
-      },
-    });
-
-    // Create JWT token
-    const token = jwt.sign({ userId: user.id, email: user.email }, process.env.JWT_SECRET || "your-secret-key", { expiresIn: "7d" });
 
     return NextResponse.json({
-      jwt: token,
-      user,
+      jwt: result.jwt,
+      user: result.user,
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Registration error:", error);
+
+    // Handle Strapi validation errors
+    if (error instanceof Error && error.message.includes("400")) {
+      return NextResponse.json({ error: "Email or username already exists" }, { status: 400 });
+    }
+
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

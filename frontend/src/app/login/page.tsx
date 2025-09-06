@@ -5,16 +5,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useLogin } from "@/hooks/use-auth";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 export default function LoginPage() {
+  const router = useRouter();
+  const loginMutation = useLogin();
+
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -27,38 +31,22 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setError("");
 
-    try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-        }),
-      });
+    const loginData = {
+      identifier: formData.email,
+      password: formData.password,
+    };
 
-      const data = await response.json();
-
-      if (response.ok) {
-        // Store JWT token
-        localStorage.setItem("jwt", data.jwt);
-        localStorage.setItem("user", JSON.stringify(data.user));
-
-        // Redirect to classes or dashboard
-        window.location.href = "/classes";
-      } else {
-        setError(data.error?.message || "Login failed. Please check your credentials.");
-      }
-    } catch {
-      setError("Network error. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
+    loginMutation.mutate(loginData, {
+      onSuccess: () => {
+        // Login successful - redirect to classes page
+        router.push("/classes");
+      },
+      onError: (error: Error) => {
+        setError(error.message);
+      },
+    });
   };
 
   return (
@@ -87,21 +75,21 @@ export default function LoginPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="email">Email Address</Label>
-                  <Input id="email" name="email" type="email" value={formData.email} onChange={handleInputChange} required placeholder="your.email@example.com" disabled={isLoading} />
+                  <Input id="email" name="email" type="email" value={formData.email} onChange={handleInputChange} required placeholder="your.email@example.com" disabled={loginMutation.isPending} />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="password">Password</Label>
                   <div className="relative">
-                    <Input id="password" name="password" type={showPassword ? "text" : "password"} value={formData.password} onChange={handleInputChange} required placeholder="Enter your password" disabled={isLoading} />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground" disabled={isLoading}>
+                    <Input id="password" name="password" type={showPassword ? "text" : "password"} value={formData.password} onChange={handleInputChange} required placeholder="Enter your password" disabled={loginMutation.isPending} />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground" disabled={loginMutation.isPending}>
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
-                  {isLoading ? (
+                <Button type="submit" className="w-full" size="lg" disabled={loginMutation.isPending}>
+                  {loginMutation.isPending ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       Signing in...

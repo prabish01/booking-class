@@ -420,8 +420,7 @@ export interface ApiBookingBooking extends Struct.CollectionTypeSchema {
     user: Schema.Attribute.Relation<
       'manyToOne',
       'plugin::users-permissions.user'
-    > &
-      Schema.Attribute.Required;
+    >;
   };
 }
 
@@ -437,14 +436,22 @@ export interface ApiClassOccurrenceClassOccurrence
   options: {
     draftAndPublish: true;
   };
+  pluginOptions: {
+    'content-manager': {
+      visible: true;
+    };
+    'content-type-builder': {
+      visible: true;
+    };
+  };
   attributes: {
     bookings: Schema.Attribute.Relation<'oneToMany', 'api::booking.booking'>;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    date: Schema.Attribute.DateTime & Schema.Attribute.Required;
+    date: Schema.Attribute.Date & Schema.Attribute.Required;
     description: Schema.Attribute.Text;
-    endTime: Schema.Attribute.String & Schema.Attribute.Required;
+    endTime: Schema.Attribute.Time & Schema.Attribute.Required;
     externalVideoIds: Schema.Attribute.JSON;
     instructor: Schema.Attribute.String & Schema.Attribute.Required;
     isActive: Schema.Attribute.Boolean &
@@ -467,8 +474,11 @@ export interface ApiClassOccurrenceClassOccurrence
       Schema.Attribute.DefaultTo<20>;
     price: Schema.Attribute.Decimal & Schema.Attribute.Required;
     publishedAt: Schema.Attribute.DateTime;
+    slug: Schema.Attribute.UID<'title'> &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
     songThumbnail: Schema.Attribute.Media<'images'>;
-    startTime: Schema.Attribute.String & Schema.Attribute.Required;
+    startTime: Schema.Attribute.Time & Schema.Attribute.Required;
     thumbnail: Schema.Attribute.Media<'images'>;
     title: Schema.Attribute.String & Schema.Attribute.Required;
     updatedAt: Schema.Attribute.DateTime;
@@ -1006,7 +1016,7 @@ export interface PluginUsersPermissionsUser
     draftAndPublish: false;
   };
   attributes: {
-    address: Schema.Attribute.Text & Schema.Attribute.Required;
+    address: Schema.Attribute.Text;
     blocked: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     bookings: Schema.Attribute.Relation<'oneToMany', 'api::booking.booking'>;
     confirmationToken: Schema.Attribute.String & Schema.Attribute.Private;
@@ -1014,18 +1024,17 @@ export interface PluginUsersPermissionsUser
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    dateOfBirth: Schema.Attribute.Date & Schema.Attribute.Required;
+    dateOfBirth: Schema.Attribute.Date;
     email: Schema.Attribute.Email &
       Schema.Attribute.Required &
       Schema.Attribute.SetMinMaxLength<{
         minLength: 6;
       }>;
-    firstName: Schema.Attribute.String & Schema.Attribute.Required;
+    firstName: Schema.Attribute.String;
     gender: Schema.Attribute.Enumeration<
       ['male', 'female', 'non-binary', 'prefer-not-to-say']
-    > &
-      Schema.Attribute.Required;
-    heardAboutUs: Schema.Attribute.Enumeration<
+    >;
+    hearAboutUs: Schema.Attribute.Enumeration<
       [
         'social-media',
         'friend-referral',
@@ -1035,9 +1044,8 @@ export interface PluginUsersPermissionsUser
         'community-event',
         'other',
       ]
-    > &
-      Schema.Attribute.Required;
-    lastName: Schema.Attribute.String & Schema.Attribute.Required;
+    >;
+    lastName: Schema.Attribute.String;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',

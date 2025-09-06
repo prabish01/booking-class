@@ -11,6 +11,7 @@
   "options": {
     "draftAndPublish": false
   },
+  "pluginOptions": {},
   "attributes": {
     "username": {
       "type": "string",
@@ -67,29 +68,29 @@
     },
     "firstName": {
       "type": "string",
-      "required": true
+      "required": false
     },
     "lastName": {
       "type": "string",
-      "required": true
+      "required": false
     },
     "address": {
       "type": "text",
-      "required": true
+      "required": false
     },
     "dateOfBirth": {
       "type": "date",
-      "required": true
+      "required": false
     },
     "gender": {
       "type": "enumeration",
-      "enum": ["male", "female", "non-binary", "prefer-not-to-say"],
-      "required": true
+      "required": false,
+      "enum": ["male", "female", "non-binary", "prefer-not-to-say"]
     },
-    "heardAboutUs": {
+    "hearAboutUs": {
       "type": "enumeration",
-      "enum": ["social-media", "friend-referral", "google-search", "flyer-poster", "local-newspaper", "community-event", "other"],
-      "required": true
+      "required": false,
+      "enum": ["social-media", "friend-referral", "google-search", "flyer-poster", "local-newspaper", "community-event", "other"]
     },
     "phone": {
       "type": "string"

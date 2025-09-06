@@ -1,26 +1,20 @@
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { NextRequest, NextResponse } from "next/server";
+import { strapiAPI } from "@/lib/strapi";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const now = new Date();
-    const twoWeeksFromNow = new Date();
-    twoWeeksFromNow.setDate(now.getDate() + 14);
+    const { searchParams } = new URL(request.url);
+    const startDate = searchParams.get("startDate") || undefined;
+    const endDate = searchParams.get("endDate") || undefined;
 
-    const classes = await prisma.classOccurrence.findMany({
-      where: {
-        date: {
-          gte: now,
-          lte: twoWeeksFromNow,
-        },
-        isActive: true,
-      },
-      orderBy: { date: "asc" },
+    const result = await strapiAPI.getClassOccurrences({
+      startDate,
+      endDate,
     });
 
-    return NextResponse.json(classes);
+    return NextResponse.json(result);
   } catch (error) {
-    console.error("Error fetching classes:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    console.error("Classes API error:", error);
+    return NextResponse.json({ error: "Failed to fetch classes" }, { status: 500 });
   }
 }

@@ -10,25 +10,38 @@
   "options": {
     "draftAndPublish": true
   },
-  "pluginOptions": {},
+  "pluginOptions": {
+    "content-manager": {
+      "visible": true
+    },
+    "content-type-builder": {
+      "visible": true
+    }
+  },
   "attributes": {
     "title": {
       "type": "string",
       "required": true
     },
+    "slug": {
+      "type": "uid",
+      "targetField": "title",
+      "required": true,
+      "unique": true
+    },
     "description": {
       "type": "text"
     },
     "date": {
-      "type": "datetime",
+      "type": "date",
       "required": true
     },
     "startTime": {
-      "type": "string",
+      "type": "time",
       "required": true
     },
     "endTime": {
-      "type": "string",
+      "type": "time",
       "required": true
     },
     "maxCapacity": {

@@ -2,49 +2,16 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { getStrapiMediaURL } from "@/lib/strapi";
-import { useUpcomingClasses } from "@/hooks/api";
-import { useState, useEffect } from "react";
+import { getStrapiMediaURL, type ClassOccurrence } from "@/lib/strapi";
+import { useClasses } from "@/hooks/use-classes";
+import { generateSlug } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
 import { Calendar, MapPin, Clock, Users, Loader2 } from "lucide-react";
 
 export default function ClassesPage() {
-  // Temporarily use useState/useEffect for debugging
-  const [classes, setClasses] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<any>(null);
-
-  useEffect(() => {
-    const fetchClasses = async () => {
-      try {
-        setIsLoading(true);
-        const now = new Date();
-        const twoWeeksFromNow = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
-        const url = `http://localhost:1337/api/class-occurrences?startDate=${now.toISOString()}&endDate=${twoWeeksFromNow.toISOString()}&populate=thumbnail,songThumbnail,externalVideoIds&sort=date:asc`;
-
-        console.log("Fetching classes from:", url);
-        const response = await fetch(url);
-        const data = await response.json();
-        console.log("API Response:", data);
-
-        if (data.data) {
-          setClasses(data.data);
-        }
-      } catch (err) {
-        console.error("Error fetching classes:", err);
-        setError(err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchClasses();
-  }, []);
-
-  // Original TanStack Query approach (commented out for debugging)
-  // const { data: classesResponse, isLoading, error } = useUpcomingClasses();
-  // const classes = classesResponse?.data || [];
+  const { data: classesResponse, isLoading, error } = useClasses();
+  const classes = classesResponse?.data || [];
 
   // Debug logging
   console.log("Classes Page Debug:", {
@@ -64,17 +31,45 @@ export default function ClassesPage() {
     });
   };
 
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString("en-GB", {
-      hour: "2-digit",
+  const formatTimeFromString = (timeStr: string) => {
+    // Parse time string in HH:MM:SS format and convert to AM/PM
+    const [hours, minutes] = timeStr.split(":").map(Number);
+    const date = new Date();
+    date.setHours(hours, minutes, 0);
+
+    return date.toLocaleTimeString("en-US", {
+      hour: "numeric",
       minute: "2-digit",
+      hour12: true,
     });
   };
 
-//   const formatPrice = (priceInCents: number) => {
-//     return `£${(priceInCents / 100).toFixed(2)}`;
-//   };
+  const calculateDuration = (startTime: string, endTime: string) => {
+    // Parse time strings in HH:MM:SS format
+    const parseTime = (timeStr: string) => {
+      const [hours, minutes] = timeStr.split(":").map(Number);
+      return hours * 60 + minutes; // Convert to total minutes
+    };
+
+    const startMinutes = parseTime(startTime);
+    const endMinutes = parseTime(endTime);
+
+    // Handle case where end time is next day (e.g., start: 23:00, end: 01:00)
+    let durationMinutes = endMinutes - startMinutes;
+    if (durationMinutes < 0) {
+      durationMinutes += 24 * 60; // Add 24 hours worth of minutes
+    }
+
+    // Format as hr:min
+    const hours = Math.floor(durationMinutes / 60);
+    const minutes = durationMinutes % 60;
+
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    } else {
+      return `${minutes}m`;
+    }
+  };
 
   if (isLoading) {
     return (
@@ -132,7 +127,7 @@ export default function ClassesPage() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {classes.map((classItem) => (
+                {classes.map((classItem: ClassOccurrence) => (
                   <Card key={classItem.id} className="overflow-hidden hover:shadow-lg transition-shadow">
                     {/* Class Image */}
                     <div className="relative h-48 bg-gradient-to-br from-primary/20 to-bollywood-pink/20">
@@ -155,16 +150,16 @@ export default function ClassesPage() {
                       <div className="space-y-2">
                         <div className="flex items-center text-sm text-muted-foreground">
                           <Clock className="h-4 w-4 mr-2" />
-                          {formatTime(classItem.date)} ({classItem.durationMinutes} minutes)
+                          {formatTimeFromString(classItem.startTime)} - {formatTimeFromString(classItem.endTime)} ({calculateDuration(classItem.startTime, classItem.endTime)})
                         </div>
                         <div className="flex items-center text-sm text-muted-foreground">
                           <MapPin className="h-4 w-4 mr-2" />
                           {classItem.location}
                         </div>
-                        {classItem.spotsAvailable && (
+                        {classItem.maxCapacity && (
                           <div className="flex items-center text-sm text-muted-foreground">
                             <Users className="h-4 w-4 mr-2" />
-                            {classItem.spotsAvailable} spots available
+                            {classItem.maxCapacity} spots available
                           </div>
                         )}
                       </div>
@@ -172,7 +167,7 @@ export default function ClassesPage() {
                       {/* Price and Booking */}
                       <div className="flex items-center justify-between pt-4 border-t">
                         <div className="text-2xl font-bold text-primary">£{classItem.price}</div>
-                        <Link href={`/classes/${classItem.documentId}`}>
+                        <Link href={`/classes/${generateSlug(classItem.title)}`}>
                           <Button>Book Now</Button>
                         </Link>
                       </div>

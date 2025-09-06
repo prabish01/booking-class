@@ -1,16 +1,18 @@
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { NextRequest, NextResponse } from "next/server";
+import { strapiAPI } from "@/lib/strapi";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const videos = await prisma.video.findMany({
-      where: { isPublished: true },
-      orderBy: { createdAt: "desc" },
+    const { searchParams } = new URL(request.url);
+    const featured = searchParams.get("featured") === "true";
+
+    const result = await strapiAPI.getVideos({
+      featured: featured || undefined,
     });
 
-    return NextResponse.json(videos);
+    return NextResponse.json(result);
   } catch (error) {
-    console.error("Error fetching videos:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    console.error("Videos API error:", error);
+    return NextResponse.json({ error: "Failed to fetch videos" }, { status: 500 });
   }
 }
