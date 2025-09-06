@@ -78,8 +78,9 @@ export default function SignupPage() {
 
     registerMutation.mutate(userData, {
       onSuccess: () => {
-        // Registration successful - redirect to login page
-        router.push("/login");
+        // Registration successful - user is now authenticated, redirect to home page
+        // Use replace() instead of push() to prevent back button issues
+        router.replace("/");
       },
       onError: (error: Error) => {
         setError(error.message);
