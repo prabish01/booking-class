@@ -65,6 +65,7 @@ export interface Video extends StrapiEntity {
 
 export interface ClassOccurrence extends StrapiEntity {
   title: string;
+  description?: string;
   date: string;
   durationMinutes: number;
   location: string;
@@ -91,6 +92,19 @@ export interface User extends StrapiEntity {
 export interface Booking extends StrapiEntity {
   user?: User;
   classOccurrence: ClassOccurrence;
+  status: "pending" | "confirmed" | "canceled" | "refunded";
+  amountPaidCents: number;
+  currency: string;
+  stripePaymentIntentId?: string;
+  guestFirstName?: string;
+  guestLastName?: string;
+  guestEmail?: string;
+}
+
+// For creating bookings, relations are passed as IDs
+export interface CreateBookingData {
+  user?: number;
+  classOccurrence: number;
   status: "pending" | "confirmed" | "canceled" | "refunded";
   amountPaidCents: number;
   currency: string;
@@ -156,25 +170,53 @@ class StrapiAPI {
   async getClassOccurrences(params?: { startDate?: string; endDate?: string }): Promise<StrapiResponse<ClassOccurrence[]>> {
     const queryParams = new URLSearchParams();
 
+    // Add date filters using Strapi v5 syntax
     if (params?.startDate) {
-      queryParams.append("startDate", params.startDate);
+      queryParams.append("filters[date][$gte]", params.startDate);
     }
     if (params?.endDate) {
-      queryParams.append("endDate", params.endDate);
+      queryParams.append("filters[date][$lte]", params.endDate);
     }
 
-    queryParams.append("populate", "thumbnail,songThumbnail,externalVideoIds.thumbnail");
-    queryParams.append("sort", "date:asc");
+    // Add populate using correct Strapi v5 syntax
+    queryParams.append("populate[0]", "thumbnail");
+    queryParams.append("populate[1]", "songThumbnail");
+
+    // Add sorting
+    queryParams.append("sort[0]", "date:asc");
 
     return this.request(`/class-occurrences?${queryParams.toString()}`);
   }
 
   async getClassOccurrence(id: string): Promise<StrapiResponse<ClassOccurrence>> {
-    return this.request(`/class-occurrences/${id}?populate=thumbnail,songThumbnail,externalVideoIds.thumbnail`);
+    return this.request(`/class-occurrences/${id}?populate[0]=thumbnail&populate[1]=songThumbnail`);
+  }
+
+  // Create class occurrence
+  async createClassOccurrence(data: Partial<ClassOccurrence>): Promise<StrapiResponse<ClassOccurrence>> {
+    return this.request("/class-occurrences", {
+      method: "POST",
+      body: JSON.stringify({ data }),
+    });
+  }
+
+  // Update class occurrence
+  async updateClassOccurrence(id: string, data: Partial<ClassOccurrence>): Promise<StrapiResponse<ClassOccurrence>> {
+    return this.request(`/class-occurrences/${id}`, {
+      method: "PUT",
+      body: JSON.stringify({ data }),
+    });
+  }
+
+  // Delete class occurrence
+  async deleteClassOccurrence(id: string): Promise<void> {
+    return this.request(`/class-occurrences/${id}`, {
+      method: "DELETE",
+    });
   }
 
   // Bookings
-  async createBooking(data: Partial<Booking>): Promise<StrapiResponse<Booking>> {
+  async createBooking(data: CreateBookingData): Promise<StrapiResponse<Booking>> {
     return this.request("/bookings", {
       method: "POST",
       body: JSON.stringify({ data }),
@@ -197,9 +239,39 @@ class StrapiAPI {
   }
 
   // Auth
-  async register(userData: { username: string; email: string; password: string; firstName: string; lastName: string }): Promise<{ jwt: string; user: User }> {
-    return this.request("/auth/local/register", {
+  async register(userData: { username: string; email: string; password: string; firstName?: string; lastName?: string }): Promise<{ jwt: string; user: User }> {
+    // Only send required fields for initial registration
+    const registrationData = {
+      username: userData.username,
+      email: userData.email,
+      password: userData.password,
+    };
+
+    const result: { jwt: string; user: User } = await this.request("/auth/local/register", {
       method: "POST",
+      body: JSON.stringify(registrationData),
+    });
+
+    // If we have additional fields, update the user profile after registration
+    if (userData.firstName || userData.lastName) {
+      try {
+        await this.updateUserProfile(result.user.id.toString(), {
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+        });
+      } catch (error) {
+        console.warn("Failed to update user profile after registration:", error);
+        // Don't fail the registration if profile update fails
+      }
+    }
+
+    return result;
+  }
+
+  // Update user profile
+  async updateUserProfile(userId: string, userData: Partial<User>): Promise<StrapiResponse<User>> {
+    return this.request(`/users/${userId}`, {
+      method: "PUT",
       body: JSON.stringify(userData),
     });
   }

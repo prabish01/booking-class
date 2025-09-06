@@ -6,10 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useRegister } from "@/hooks/use-auth";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 export default function SignupPage() {
+  const router = useRouter();
+  const registerMutation = useRegister();
+
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -24,7 +29,6 @@ export default function SignupPage() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -44,58 +48,36 @@ export default function SignupPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setError("");
 
     // Validation
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match");
-      setIsLoading(false);
       return;
     }
 
     if (formData.password.length < 6) {
       setError("Password must be at least 6 characters long");
-      setIsLoading(false);
       return;
     }
 
-    try {
-      const response = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          phone: formData.phone,
-          address: formData.address,
-          dateOfBirth: formData.dateOfBirth,
-          gender: formData.gender,
-          heardAboutUs: formData.heardAboutUs,
-        }),
-      });
+    const userData = {
+      username: formData.email,
+      email: formData.email,
+      password: formData.password,
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+    };
 
-      const data = await response.json();
-
-      if (response.ok) {
-        // Store JWT token
-        localStorage.setItem("jwt", data.jwt);
-        localStorage.setItem("user", JSON.stringify(data.user));
-
-        // Redirect to classes
-        window.location.href = "/classes";
-      } else {
-        setError(data.error?.message || "Registration failed. Please try again.");
-      }
-    } catch {
-      setError("Network error. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
+    registerMutation.mutate(userData, {
+      onSuccess: () => {
+        // Registration successful - redirect to login page
+        router.push("/login");
+      },
+      onError: (error: Error) => {
+        setError(error.message);
+      },
+    });
   };
 
   return (
@@ -125,38 +107,38 @@ export default function SignupPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="firstName">First Name</Label>
-                    <Input id="firstName" name="firstName" type="text" value={formData.firstName} onChange={handleInputChange} required placeholder="John" disabled={isLoading} />
+                    <Input id="firstName" name="firstName" type="text" value={formData.firstName} onChange={handleInputChange} required placeholder="John" disabled={registerMutation.isPending} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="lastName">Last Name</Label>
-                    <Input id="lastName" name="lastName" type="text" value={formData.lastName} onChange={handleInputChange} required placeholder="Doe" disabled={isLoading} />
+                    <Input id="lastName" name="lastName" type="text" value={formData.lastName} onChange={handleInputChange} required placeholder="Doe" disabled={registerMutation.isPending} />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="email">Email Address</Label>
-                    <Input id="email" name="email" type="email" value={formData.email} onChange={handleInputChange} required placeholder="john.doe@example.com" disabled={isLoading} />
+                    <Input id="email" name="email" type="email" value={formData.email} onChange={handleInputChange} required placeholder="john.doe@example.com" disabled={registerMutation.isPending} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="phone">Phone Number (Optional)</Label>
-                    <Input id="phone" name="phone" type="tel" value={formData.phone} onChange={handleInputChange} placeholder="+44 123 456 7890" disabled={isLoading} />
+                    <Input id="phone" name="phone" type="tel" value={formData.phone} onChange={handleInputChange} placeholder="+44 123 456 7890" disabled={registerMutation.isPending} />
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="address">Address</Label>
-                  <Input id="address" name="address" type="text" value={formData.address} onChange={handleInputChange} required placeholder="123 Main Street, London, UK" disabled={isLoading} />
+                  <Input id="address" name="address" type="text" value={formData.address} onChange={handleInputChange} required placeholder="123 Main Street, London, UK" disabled={registerMutation.isPending} />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="dateOfBirth">Date of Birth</Label>
-                    <Input id="dateOfBirth" name="dateOfBirth" type="date" value={formData.dateOfBirth} onChange={handleInputChange} required disabled={isLoading} />
+                    <Input id="dateOfBirth" name="dateOfBirth" type="date" value={formData.dateOfBirth} onChange={handleInputChange} required disabled={registerMutation.isPending} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="gender">Gender</Label>
-                    <Select value={formData.gender} onValueChange={(value) => handleSelectChange("gender", value)} disabled={isLoading}>
+                    <Select value={formData.gender} onValueChange={(value) => handleSelectChange("gender", value)} disabled={registerMutation.isPending}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select your gender" />
                       </SelectTrigger>
@@ -172,7 +154,7 @@ export default function SignupPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="heardAboutUs">How did you hear about us?</Label>
-                  <Select value={formData.heardAboutUs} onValueChange={(value) => handleSelectChange("heardAboutUs", value)} disabled={isLoading}>
+                  <Select value={formData.heardAboutUs} onValueChange={(value) => handleSelectChange("heardAboutUs", value)} disabled={registerMutation.isPending}>
                     <SelectTrigger>
                       <SelectValue placeholder="Please select" />
                     </SelectTrigger>
@@ -192,8 +174,8 @@ export default function SignupPage() {
                   <div className="space-y-2">
                     <Label htmlFor="password">Password</Label>
                     <div className="relative">
-                      <Input id="password" name="password" type={showPassword ? "text" : "password"} value={formData.password} onChange={handleInputChange} required placeholder="Create a strong password" disabled={isLoading} />
-                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground" disabled={isLoading}>
+                      <Input id="password" name="password" type={showPassword ? "text" : "password"} value={formData.password} onChange={handleInputChange} required placeholder="Create a strong password" disabled={registerMutation.isPending} />
+                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground" disabled={registerMutation.isPending}>
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
@@ -201,16 +183,16 @@ export default function SignupPage() {
                   <div className="space-y-2">
                     <Label htmlFor="confirmPassword">Confirm Password</Label>
                     <div className="relative">
-                      <Input id="confirmPassword" name="confirmPassword" type={showConfirmPassword ? "text" : "password"} value={formData.confirmPassword} onChange={handleInputChange} required placeholder="Confirm your password" disabled={isLoading} />
-                      <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground" disabled={isLoading}>
+                      <Input id="confirmPassword" name="confirmPassword" type={showConfirmPassword ? "text" : "password"} value={formData.confirmPassword} onChange={handleInputChange} required placeholder="Confirm your password" disabled={registerMutation.isPending} />
+                      <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground" disabled={registerMutation.isPending}>
                         {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
-                  {isLoading ? (
+                <Button type="submit" className="w-full" size="lg" disabled={registerMutation.isPending}>
+                  {registerMutation.isPending ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       Creating account...

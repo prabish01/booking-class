@@ -2,49 +2,15 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { getStrapiMediaURL } from "@/lib/strapi";
-import { useUpcomingClasses } from "@/hooks/api";
-import { useState, useEffect } from "react";
+import { getStrapiMediaURL, type ClassOccurrence } from "@/lib/strapi";
+import { useClasses } from "@/hooks/use-classes";
 import Image from "next/image";
 import Link from "next/link";
 import { Calendar, MapPin, Clock, Users, Loader2 } from "lucide-react";
 
 export default function ClassesPage() {
-  // Temporarily use useState/useEffect for debugging
-  const [classes, setClasses] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<any>(null);
-
-  useEffect(() => {
-    const fetchClasses = async () => {
-      try {
-        setIsLoading(true);
-        const now = new Date();
-        const twoWeeksFromNow = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
-        const url = `http://localhost:1337/api/class-occurrences?startDate=${now.toISOString()}&endDate=${twoWeeksFromNow.toISOString()}&populate=thumbnail,songThumbnail,externalVideoIds&sort=date:asc`;
-
-        console.log("Fetching classes from:", url);
-        const response = await fetch(url);
-        const data = await response.json();
-        console.log("API Response:", data);
-
-        if (data.data) {
-          setClasses(data.data);
-        }
-      } catch (err) {
-        console.error("Error fetching classes:", err);
-        setError(err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchClasses();
-  }, []);
-
-  // Original TanStack Query approach (commented out for debugging)
-  // const { data: classesResponse, isLoading, error } = useUpcomingClasses();
-  // const classes = classesResponse?.data || [];
+  const { data: classesResponse, isLoading, error } = useClasses();
+  const classes = classesResponse?.data || [];
 
   // Debug logging
   console.log("Classes Page Debug:", {
@@ -72,9 +38,9 @@ export default function ClassesPage() {
     });
   };
 
-//   const formatPrice = (priceInCents: number) => {
-//     return `£${(priceInCents / 100).toFixed(2)}`;
-//   };
+  //   const formatPrice = (priceInCents: number) => {
+  //     return `£${(priceInCents / 100).toFixed(2)}`;
+  //   };
 
   if (isLoading) {
     return (
@@ -132,7 +98,7 @@ export default function ClassesPage() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {classes.map((classItem) => (
+                {classes.map((classItem: ClassOccurrence) => (
                   <Card key={classItem.id} className="overflow-hidden hover:shadow-lg transition-shadow">
                     {/* Class Image */}
                     <div className="relative h-48 bg-gradient-to-br from-primary/20 to-bollywood-pink/20">

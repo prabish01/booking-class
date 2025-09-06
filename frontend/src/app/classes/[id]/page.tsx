@@ -6,8 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useClassOccurrence } from "@/hooks/api";
-import { getStrapiMediaURL } from "@/lib/strapi";
+import { useClass } from "@/hooks/use-classes";
+import { useCreateBooking } from "@/hooks/use-bookings";
+import { getStrapiMediaURL, type CreateBookingData } from "@/lib/strapi";
+import { toast } from "@/lib/toast";
 import Image from "next/image";
 import Link from "next/link";
 import { Calendar, MapPin, Clock, Users, Loader2, ArrowLeft } from "lucide-react";
@@ -17,7 +19,8 @@ export default function ClassDetailPage() {
   const router = useRouter();
   const classId = params.id as string;
 
-  const { data: classResponse, isLoading, error } = useClassOccurrence(classId);
+  const { data: classResponse, isLoading, error } = useClass(classId);
+  const createBookingMutation = useCreateBooking();
   const classItem = classResponse?.data;
 
   const [bookingType, setBookingType] = useState<"login" | "guest" | null>(null);
@@ -51,17 +54,77 @@ export default function ClassDetailPage() {
 
   const handleGuestBooking = async () => {
     if (!guestForm.firstName || !guestForm.lastName || !guestForm.email) {
-      alert("Please fill in all guest details");
+      toast.error("Please fill in all guest details");
       return;
     }
 
-    // TODO: Implement booking creation and payment flow
-    alert("Guest booking flow would be implemented here with Stripe payment");
+    if (!classItem) {
+      toast.error("Class information not available");
+      return;
+    }
+
+    // Check if user is already logged in
+    const token = localStorage.getItem("jwt");
+    if (token) {
+      // User is logged in, create booking directly
+      const bookingData: CreateBookingData = {
+        classOccurrence: classItem.id,
+        guestFirstName: guestForm.firstName,
+        guestLastName: guestForm.lastName,
+        guestEmail: guestForm.email,
+        status: "confirmed",
+        amountPaidCents: classItem.price,
+        currency: "GBP",
+      };
+      createBookingMutation.mutate(bookingData, {
+        onSuccess: () => {
+          toast.success("Booking confirmed! You'll receive a confirmation email shortly.");
+          setBookingType(null);
+          setGuestForm({ firstName: "", lastName: "", email: "" });
+        },
+        onError: (error: Error) => {
+          toast.error(`Booking failed: ${error.message}`);
+        },
+      });
+    } else {
+      // For now, show a message about payment implementation
+      toast.info("Payment integration with Stripe will be implemented next. For now, please login to book.");
+    }
   };
 
   const handleLoginBooking = () => {
-    // TODO: Redirect to login page with return URL
-    router.push(`/login?returnUrl=/classes/${classId}`);
+    if (!classItem) {
+      toast.error("Class information not available");
+      return;
+    }
+
+    // Check if user is already logged in
+    const token = localStorage.getItem("jwt");
+    if (token) {
+      // User is already logged in, proceed with booking
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      const bookingData: CreateBookingData = {
+        classOccurrence: classItem.id,
+        guestFirstName: user.firstName || "",
+        guestLastName: user.lastName || "",
+        guestEmail: user.email || "",
+        status: "confirmed",
+        amountPaidCents: classItem.price,
+        currency: "GBP",
+      };
+      createBookingMutation.mutate(bookingData, {
+        onSuccess: () => {
+          toast.success("Booking confirmed! You'll receive a confirmation email shortly.");
+          router.push("/bookings"); // Redirect to bookings page
+        },
+        onError: (error: Error) => {
+          toast.error(`Booking failed: ${error.message}`);
+        },
+      });
+    } else {
+      // Redirect to login page with return URL
+      router.push(`/login?returnUrl=/classes/${classId}`);
+    }
   };
 
   if (isLoading) {
@@ -137,7 +200,7 @@ export default function ClassDetailPage() {
             <div className="text-4xl font-bold text-primary mb-8">{formatPrice(classItem.price)}</div>
 
             <div className="prose max-w-none">
-              <p className="text-lg text-muted-foreground leading-relaxed">Join Luna Shree for this exciting {classItem.title} class. Experience the joy of Bollywood dance in a welcoming and energetic environment. All skill levels are welcome!</p>
+              <p className="text-lg text-muted-foreground leading-relaxed">{classItem.description || `Join Luna Shree for this exciting ${classItem.title} class. Experience the joy of Bollywood dance in a welcoming and energetic environment. All skill levels are welcome!`}</p>
             </div>
           </div>
 
@@ -151,8 +214,15 @@ export default function ClassDetailPage() {
               <CardContent className="space-y-6">
                 {!bookingType ? (
                   <div className="space-y-4">
-                    <Button onClick={handleLoginBooking} className="w-full" size="lg">
-                      Login & Book
+                    <Button onClick={handleLoginBooking} className="w-full" size="lg" disabled={createBookingMutation.isPending}>
+                      {createBookingMutation.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Creating Booking...
+                        </>
+                      ) : (
+                        "Login & Book"
+                      )}
                     </Button>
                     <div className="relative">
                       <div className="absolute inset-0 flex items-center">
@@ -181,10 +251,17 @@ export default function ClassDetailPage() {
                       <Input id="email" type="email" value={guestForm.email} onChange={(e) => setGuestForm((prev) => ({ ...prev, email: e.target.value }))} placeholder="Enter your email" />
                     </div>
                     <div className="space-y-3 pt-4">
-                      <Button onClick={handleGuestBooking} className="w-full" size="lg">
-                        Proceed to Payment - {formatPrice(classItem.price)}
+                      <Button onClick={handleGuestBooking} className="w-full" size="lg" disabled={createBookingMutation.isPending}>
+                        {createBookingMutation.isPending ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Creating Booking...
+                          </>
+                        ) : (
+                          `Proceed to Payment - ${formatPrice(classItem.price)}`
+                        )}
                       </Button>
-                      <Button onClick={() => setBookingType(null)} variant="ghost" className="w-full">
+                      <Button onClick={() => setBookingType(null)} variant="ghost" className="w-full" disabled={createBookingMutation.isPending}>
                         Back
                       </Button>
                     </div>
