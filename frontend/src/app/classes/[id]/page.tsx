@@ -28,8 +28,8 @@ export default function ClassDetailPage() {
   // Debug logging for user data
   console.log("🔍 Class Detail Page - Auth State:", authState);
   console.log("🔍 User Data:", authState?.user);
-  console.log("🔍 User firstName:", authState?.user?.firstName);
-  console.log("🔍 User lastName:", authState?.user?.lastName);
+  console.log("🔍 User first_name:", authState?.user?.first_name);
+  console.log("🔍 User last_name:", authState?.user?.last_name);
 
   const classItem = classResponse?.data;
 
@@ -64,9 +64,6 @@ export default function ClassDetailPage() {
   };
 
   const getDuration = (classItem: ClassOccurrence) => {
-    if (classItem.durationMinutes) {
-      return `${classItem.durationMinutes} minutes`;
-    }
     if (classItem.startTime && classItem.endTime) {
       // Calculate duration from start and end time
       const start = new Date(`2000-01-01 ${classItem.startTime}`);
@@ -76,10 +73,6 @@ export default function ClassDetailPage() {
       return `${diffMinutes} minutes`;
     }
     return "Duration not specified";
-  };
-
-  const getAvailableSpots = (classItem: ClassOccurrence) => {
-    return classItem.spotsAvailable || classItem.maxCapacity || "Not specified";
   };
 
   const handleGuestBooking = async () => {
@@ -133,8 +126,8 @@ export default function ClassDetailPage() {
       const user = authState.user;
       const bookingData: CreateBookingData = {
         classOccurrence: classItem.id,
-        guestFirstName: user.firstName || "",
-        guestLastName: user.lastName || "",
+        guestFirstName: user.first_name || "",
+        guestLastName: user.last_name || "",
         guestEmail: user.email || "",
         status: "confirmed",
         amountPaidCents: classItem.price * 100, // Convert pounds to cents
@@ -221,10 +214,10 @@ export default function ClassDetailPage() {
                 <MapPin className="h-5 w-5 mr-3 text-primary" />
                 {classItem.location}
               </div>
-              {(classItem.spotsAvailable || classItem.maxCapacity) && (
+              {classItem.maxCapacity && (
                 <div className="flex items-center text-lg">
                   <Users className="h-5 w-5 mr-3 text-primary" />
-                  {getAvailableSpots(classItem)} spots available
+                  {classItem.maxCapacity} spots available
                 </div>
               )}
             </div>
@@ -241,7 +234,7 @@ export default function ClassDetailPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Book This Class</CardTitle>
-                <CardDescription>{authState?.isAuthenticated ? `Welcome back, ${authState.user?.firstName || authState.user?.username}!` : "Choose how you'd like to book your spot"}</CardDescription>
+                <CardDescription>{authState?.isAuthenticated ? `Welcome back, ${authState.user?.first_name || authState.user?.username}!` : "Choose how you'd like to book your spot"}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 {authState?.isAuthenticated ? (
@@ -250,7 +243,7 @@ export default function ClassDetailPage() {
                     <div className="p-4 bg-muted rounded-lg">
                       <h4 className="font-medium mb-2">Booking Details</h4>
                       <div className="space-y-1 text-sm text-muted-foreground">
-                        <p>Name: {authState.user?.firstName && authState.user?.lastName ? `${authState.user.firstName} ${authState.user.lastName}` : authState.user?.username || "Not provided"}</p>
+                        <p>Name: {authState.user?.first_name && authState.user?.last_name ? `${authState.user.first_name} ${authState.user.last_name}` : authState.user?.username || "Not provided"}</p>
                         <p>Email: {authState.user?.email}</p>
                       </div>
                     </div>

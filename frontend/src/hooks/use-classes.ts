@@ -17,7 +17,7 @@ export const classesKeys = {
 export function useClasses(params?: { startDate?: string; endDate?: string }) {
   return useQuery({
     queryKey: classesKeys.list(params || {}),
-    queryFn: () => strapiAPI.getClassOccurrence(params?.startDate || ""),
+    queryFn: () => strapiAPI.getAllUpcomingClassOccurrences(),
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 }
@@ -36,7 +36,7 @@ export function useClassBySlug(slug: string) {
   return useQuery({
     queryKey: [...classesKeys.details(), "slug", slug],
     queryFn: async () => {
-      const classesResponse = await strapiAPI.getClassOccurrence();
+      const classesResponse = await strapiAPI.getAllUpcomingClassOccurrences();
       const matchingClass = classesResponse.data.find((classItem: ClassOccurrence) => generateSlug(classItem.title) === slug);
 
       if (!matchingClass) {
@@ -60,11 +60,11 @@ export function useClassByIdOrSlug(idOrSlug: string) {
       try {
         if (isSlugParam) {
           // Since we don't have slug field in Strapi yet, we need to find by matching title
-          const classesResponse = await strapiAPI.getClassOccurrences();
+          const classesResponse = await strapiAPI.getAllUpcomingClassOccurrences();
           const matchingClass = classesResponse.data.find((classItem: ClassOccurrence) => generateSlug(classItem.title) === idOrSlug);
 
           if (!matchingClass) {
-            throw new Error("Class not found");
+            throw new Error("Class not found. Slug-based URLs require the slug field to be added to your Strapi content type.");
           }
 
           // Return in the same format as individual class fetch

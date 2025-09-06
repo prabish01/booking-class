@@ -122,16 +122,16 @@ export default function ClassesPage() {
                       <div className="space-y-2">
                         <div className="flex items-center text-sm text-muted-foreground">
                           <Clock className="h-4 w-4 mr-2" />
-                          {formatTime(classItem.date)} ({classItem.durationMinutes} minutes)
+                          {formatTime(classItem.date)} ({classItem.startTime} - {classItem.endTime})
                         </div>
                         <div className="flex items-center text-sm text-muted-foreground">
                           <MapPin className="h-4 w-4 mr-2" />
                           {classItem.location}
                         </div>
-                        {classItem.spotsAvailable && (
+                        {classItem.maxCapacity && (
                           <div className="flex items-center text-sm text-muted-foreground">
                             <Users className="h-4 w-4 mr-2" />
-                            {classItem.spotsAvailable} spots available
+                            {classItem.maxCapacity} spots available
                           </div>
                         )}
                       </div>

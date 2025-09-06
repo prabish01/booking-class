@@ -1016,7 +1016,7 @@ export interface PluginUsersPermissionsUser
     draftAndPublish: false;
   };
   attributes: {
-    address: Schema.Attribute.Text & Schema.Attribute.Required;
+    address: Schema.Attribute.Text;
     blocked: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     bookings: Schema.Attribute.Relation<'oneToMany', 'api::booking.booking'>;
     confirmationToken: Schema.Attribute.String & Schema.Attribute.Private;
@@ -1024,17 +1024,16 @@ export interface PluginUsersPermissionsUser
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    dateOfBirth: Schema.Attribute.Date & Schema.Attribute.Required;
+    dateOfBirth: Schema.Attribute.Date;
     email: Schema.Attribute.Email &
       Schema.Attribute.Required &
       Schema.Attribute.SetMinMaxLength<{
         minLength: 6;
       }>;
-    firstName: Schema.Attribute.String & Schema.Attribute.Required;
+    firstName: Schema.Attribute.String;
     gender: Schema.Attribute.Enumeration<
       ['male', 'female', 'non-binary', 'prefer-not-to-say']
-    > &
-      Schema.Attribute.Required;
+    >;
     hearAboutUs: Schema.Attribute.Enumeration<
       [
         'social-media',
@@ -1045,9 +1044,8 @@ export interface PluginUsersPermissionsUser
         'community-event',
         'other',
       ]
-    > &
-      Schema.Attribute.Required;
-    lastName: Schema.Attribute.String & Schema.Attribute.Required;
+    >;
+    lastName: Schema.Attribute.String;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',

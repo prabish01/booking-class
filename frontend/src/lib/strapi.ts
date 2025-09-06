@@ -12,218 +12,234 @@ export interface StrapiResponse<T> {
   };
 }
 
-export interface StrapiEntity {
+export interface StrapiMedia {
   id: number;
   documentId: string;
-  createdAt: string;
-  updatedAt: string;
-  publishedAt?: string;
-}
-
-export interface MediaFormat {
   name: string;
-  hash: string;
-  ext: string;
-  mime: string;
-  path?: string;
-  width?: number;
-  height?: number;
-  size: number;
-  url: string;
-}
-
-export interface Media extends StrapiEntity {
-  name: string;
-  alternativeText?: string;
-  caption?: string;
-  width?: number;
-  height?: number;
+  alternativeText?: string | null;
+  caption?: string | null;
+  width: number;
+  height: number;
   formats?: {
-    thumbnail?: MediaFormat;
-    small?: MediaFormat;
-    medium?: MediaFormat;
-    large?: MediaFormat;
+    thumbnail?: {
+      url: string;
+      width: number;
+      height: number;
+    };
+    small?: {
+      url: string;
+      width: number;
+      height: number;
+    };
   };
   hash: string;
   ext: string;
   mime: string;
   size: number;
   url: string;
-  previewUrl?: string;
+  previewUrl?: string | null;
   provider: string;
-  provider_metadata?: Record<string, unknown>;
+  provider_metadata?: unknown;
+  createdAt: string;
+  updatedAt: string;
+  publishedAt: string;
 }
 
-export interface Video extends StrapiEntity {
-  title: string;
-  description?: string;
-  thumbnail: Media;
-  externalUrl: string;
-  videoFile?: Media;
-  featured: boolean;
-}
-
-export interface ClassOccurrence extends StrapiEntity {
-  title: string;
-  slug?: string;
-  description?: string;
-  date: string;
-  startTime?: string;
-  endTime?: string;
-  durationMinutes?: number;
-  maxCapacity?: number;
-  level?: string;
-  instructor?: string;
-  location: string;
-  isActive?: boolean;
-  thumbnail: Media;
-  songThumbnail?: Media;
-  spotsAvailable?: number;
-  price: number;
-  externalVideoIds?: Video[];
-}
-
-export interface User extends StrapiEntity {
+export interface User {
+  id: number;
   username: string;
   email: string;
-  firstName: string;
-  lastName: string;
-  address?: string;
-  dateOfBirth?: string;
-  gender?: "male" | "female" | "non-binary" | "prefer-not-to-say";
-  heardAboutUs?: string;
-  phone?: string;
-  profilePicture?: Media;
+  first_name: string;
+  last_name: string;
+  phone: string;
+  address: string;
+  date_of_birth: string;
+  gender: "male" | "female" | "non-binary" | "prefer-not-to-say";
+  hear_about_us: string;
 }
 
-export interface Booking extends StrapiEntity {
+export interface DanceClass {
+  id: number;
+  documentId: string;
+  title: string;
+  description: string;
+  slug?: string;
+  instructor: Instructor;
+  image: {
+    url: string;
+    alternativeText?: string;
+  };
+}
+
+export interface Instructor {
+  id: number;
+  documentId: string;
+  name: string;
+  bio: string;
+  slug?: string;
+  image: {
+    url: string;
+    alternativeText?: string;
+  };
+}
+
+export interface ClassOccurrence {
+  id: number;
+  documentId: string;
+  title: string;
+  description?: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  maxCapacity: number;
+  price: number;
+  level: "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
+  instructor: string;
+  location?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  publishedAt: string;
+  externalVideoIds?: string[] | null;
+  slug?: string | null;
+  thumbnail?: StrapiMedia | null;
+}
+
+export interface Booking {
+  id: number;
+  documentId: string;
   user?: User;
   classOccurrence: ClassOccurrence;
-  status: "pending" | "confirmed" | "canceled" | "refunded";
-  amountPaidCents: number;
-  currency: string;
-  stripePaymentIntentId?: string;
-  guestFirstName?: string;
-  guestLastName?: string;
+  guestName?: string;
   guestEmail?: string;
+  guestPhone?: string;
+  paymentIntentId: string;
+  status: "pending" | "confirmed" | "cancelled";
+  createdAt: string;
 }
 
-// For creating bookings, relations are passed as IDs
 export interface CreateBookingData {
-  user?: number;
   classOccurrence: number;
-  status: "pending" | "confirmed" | "canceled" | "refunded";
-  amountPaidCents: number;
-  currency: string;
-  stripePaymentIntentId?: string;
   guestFirstName?: string;
   guestLastName?: string;
   guestEmail?: string;
+  guestPhone?: string;
+  status: "pending" | "confirmed" | "cancelled";
+  amountPaidCents?: number;
+  currency?: string;
 }
 
-export interface SiteSettings extends StrapiEntity {
-  logo: Media;
-  headerLogo: Media;
-  headerVideo?: Media;
-  heroTitle: string;
-  heroSubtitle?: string;
-  socials?: Array<{
-    platform: string;
+export interface SiteSettings {
+  id: number;
+  documentId: string;
+  siteName: string;
+  siteDescription: string;
+  logo?: {
     url: string;
-  }>;
+    alternativeText?: string;
+  };
+  headerLogo?: {
+    url: string;
+    alternativeText?: string;
+  };
+  headerVideo?: {
+    url: string;
+  };
 }
 
 class StrapiAPI {
   private baseURL: string;
 
   constructor() {
-    this.baseURL = STRAPI_URL;
+    this.baseURL = `${STRAPI_URL}/api`;
   }
 
-  private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
-    const url = `${this.baseURL}/api${endpoint}`;
-
-    const defaultHeaders = {
-      "Content-Type": "application/json",
-    };
-
-    const response = await fetch(url, {
+  private async request<T = unknown>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    const url = `${this.baseURL}${endpoint}`;
+    const config: RequestInit = {
       headers: {
-        ...defaultHeaders,
-        ...options?.headers,
+        "Content-Type": "application/json",
+        ...options.headers,
       },
       ...options,
-    });
+    };
+
+    const response = await fetch(url, config);
 
     if (!response.ok) {
-      console.error(`❌ HTTP error! status: ${response.status} for URL: ${url}`);
-      console.error("Request options:", options);
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorBody = await response.text();
+      console.error(`HTTP ${response.status} for ${endpoint}:`, errorBody);
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
-    return response.json();
+    const data = await response.json();
+    return data;
   }
 
-  // Videos
-  async getVideos(params?: { featured?: boolean }): Promise<StrapiResponse<Video[]>> {
-    const queryParams = new URLSearchParams();
-    if (params?.featured) {
-      queryParams.append("filters[featured][$eq]", "true");
-    }
-    queryParams.append("populate", "thumbnail,videoFile");
+  // Auth - Using Strapi's default APIs only
+  async register(userData: { username: string; email: string; password: string; firstName: string; lastName: string; phone: string; address: string; dateOfBirth: string; gender: string; hearAboutUs: string }): Promise<{ jwt: string; user: User }> {
+    console.log("📡 Using Strapi's default APIs");
 
-    return this.request(`/videos?${queryParams.toString()}`);
-  }
+    // Step 1: Register with basic fields using default /auth/local/register
+    const basicRegistration: { jwt: string; user: User } = await this.request("/auth/local/register", {
+      method: "POST",
+      body: JSON.stringify({
+        username: userData.username,
+        email: userData.email,
+        password: userData.password,
+      }),
+    });
 
-  async getVideo(id: string): Promise<StrapiResponse<Video>> {
-    return this.request(`/videos/${id}?populate=thumbnail,videoFile`);
-  }
+    console.log("✅ Basic registration successful");
 
-  // Class Occurrences
-  async getClassOccurrences(params?: { startDate?: string; endDate?: string }): Promise<StrapiResponse<ClassOccurrence[]>> {
-    const queryParams = new URLSearchParams();
+    // Step 2: Update user with additional fields using default /users/{id}
+    try {
+      const updatedUser: User = await this.request(`/users/${basicRegistration.user.id}`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${basicRegistration.jwt}`,
+        },
+        body: JSON.stringify({
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          phone: userData.phone,
+          address: userData.address,
+          dateOfBirth: userData.dateOfBirth,
+          gender: userData.gender,
+          hearAboutUs: userData.hearAboutUs,
+        }),
+      });
 
-    // Add date filters using Strapi v5 syntax
-    if (params?.startDate) {
-      queryParams.append("filters[date][$gte]", params.startDate);
-    }
-    if (params?.endDate) {
-      queryParams.append("filters[date][$lte]", params.endDate);
-    }
+      console.log("✅ User profile updated with additional fields");
 
-    // Add populate using correct Strapi v5 syntax
-    queryParams.append("populate[0]", "thumbnail");
-    queryParams.append("populate[1]", "songThumbnail");
-
-    // Add sorting
-    queryParams.append("sort[0]", "date:asc");
-
-    return this.request(`/class-occurrences?${queryParams.toString()}`);
-  }
-
-  async getClassOccurrence(id: string): Promise<StrapiResponse<ClassOccurrence>> {
-    return this.request(`/class-occurrences/${id}?populate[0]=thumbnail&populate[1]=songThumbnail`);
-  }
-
-  // Get class occurrence by slug
-  async getClassOccurrenceBySlug(slug: string): Promise<StrapiResponse<ClassOccurrence>> {
-    const queryParams = new URLSearchParams();
-    queryParams.append("filters[slug][$eq]", slug);
-    queryParams.append("populate[0]", "thumbnail");
-    queryParams.append("populate[1]", "songThumbnail");
-
-    const response = (await this.request(`/class-occurrences?${queryParams.toString()}`)) as StrapiResponse<ClassOccurrence[]>;
-
-    // Since we're filtering, we get an array but we want the first (and should be only) item
-    if (response.data && Array.isArray(response.data) && response.data.length > 0) {
       return {
-        data: response.data[0],
-        meta: response.meta,
+        jwt: basicRegistration.jwt,
+        user: updatedUser,
       };
+    } catch (error) {
+      console.error("❌ Failed to update user profile:", error);
+      throw new Error("Registration failed: Unable to save additional information");
     }
-
-    throw new Error("Class not found");
   }
+
+  async login(credentials: { identifier: string; password: string }): Promise<{ jwt: string; user: User }> {
+    const result: { jwt: string; user: User } = await this.request("/auth/local", {
+      method: "POST",
+      body: JSON.stringify(credentials),
+    });
+
+    return result;
+  }
+
+  async getCurrentUser(token: string): Promise<User> {
+    return this.request("/users/me", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  }
+
+  // === CLASS OCCURRENCE METHODS ===
 
   // Create class occurrence
   async createClassOccurrence(data: Partial<ClassOccurrence>): Promise<StrapiResponse<ClassOccurrence>> {
@@ -241,55 +257,66 @@ class StrapiAPI {
     });
   }
 
-  // Delete class occurrence
-  async deleteClassOccurrence(id: string): Promise<void> {
-    return this.request(`/class-occurrences/${id}`, {
-      method: "DELETE",
-    });
+  // Get all upcoming classes
+  async getAllUpcomingClassOccurrences(): Promise<StrapiResponse<ClassOccurrence[]>> {
+    const today = new Date().toISOString().split("T")[0];
+    return this.request(`/class-occurrences?filters[date][$gte]=${today}&sort=date:asc&populate=thumbnail`);
+  }
+
+  // Get class occurrence by ID
+  async getClassOccurrence(id: string): Promise<StrapiResponse<ClassOccurrence>> {
+    return this.request(`/class-occurrences/${id}?populate=thumbnail`);
   }
 
   // Bookings
-  async createBooking(data: CreateBookingData): Promise<StrapiResponse<Booking>> {
+  async createBooking(data: Partial<Booking>): Promise<StrapiResponse<Booking>> {
     return this.request("/bookings", {
       method: "POST",
       body: JSON.stringify({ data }),
     });
   }
 
-  async getBookings(userId?: string): Promise<StrapiResponse<Booking[]>> {
-    const queryParams = new URLSearchParams();
-    if (userId) {
-      queryParams.append("filters[user][id][$eq]", userId);
-    }
-    queryParams.append("populate", "classOccurrence.thumbnail,user");
+  async getBookings(token?: string): Promise<StrapiResponse<Booking[]>> {
+    const headers: Record<string, string> = {};
 
-    return this.request(`/bookings?${queryParams.toString()}`);
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    return this.request("/bookings?populate=classOccurrence,user", {
+      headers,
+    });
+  }
+
+  async getUserBookings(userId: string, token: string): Promise<StrapiResponse<Booking[]>> {
+    return this.request(`/bookings?filters[user][id][$eq]=${userId}&populate=classOccurrence,user`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  }
+
+  // Instructors
+  async getInstructors(): Promise<StrapiResponse<Instructor[]>> {
+    return this.request("/instructors?populate=image");
+  }
+
+  async getInstructorBySlug(slug: string): Promise<StrapiResponse<Instructor>> {
+    const response = await this.request<StrapiResponse<Instructor[]>>(`/instructors?filters[slug][$eq]=${slug}&populate=image`);
+
+    if (response.data && response.data.length > 0) {
+      return {
+        data: response.data[0],
+        meta: response.meta,
+      };
+    }
+
+    throw new Error("Instructor not found");
   }
 
   // Site Settings
   async getSiteSettings(): Promise<StrapiResponse<SiteSettings>> {
     return this.request("/site-setting?populate=logo,headerLogo,headerVideo");
-  }
-
-  // Auth
-  async register(userData: { username: string; email: string; password: string; firstName?: string; lastName?: string; phone?: string; address?: string; dateOfBirth?: string; gender?: string; heardAboutUs?: string }): Promise<{ jwt: string; user: User }> {
-    console.log("📡 Strapi register: Sending all data to registration endpoint:", userData);
-
-    // Send all data to the registration endpoint (our custom extension will handle the additional fields)
-    const options = {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(userData),
-    };
-
-    console.log("📡 Request options being sent:", options);
-
-    const result: { jwt: string; user: User } = await this.request("/auth/local/register", options);
-
-    console.log("✅ Registration successful with complete user data:", result);
-    return result;
   }
 
   // Update user profile
@@ -319,31 +346,7 @@ class StrapiAPI {
     });
   }
 
-  async login(credentials: { identifier: string; password: string }): Promise<{ jwt: string; user: User }> {
-    const result: { jwt: string; user: User } = await this.request("/auth/local", {
-      method: "POST",
-      body: JSON.stringify(credentials),
-    });
-
-    console.log("🔐 Login successful, fetching complete user profile...");
-    console.log("🔐 Basic user data from login:", result.user);
-
-    // Fetch the complete user profile with all fields using /users/me endpoint
-    try {
-      const completeUserProfile = await this.getCurrentUserProfile(result.jwt);
-      console.log("✅ Complete user profile fetched:", completeUserProfile);
-
-      return {
-        ...result,
-        user: completeUserProfile,
-      };
-    } catch (error) {
-      console.warn("⚠️ Failed to fetch complete user profile, using basic data:", error);
-      return result;
-    }
-  }
-
-  // Get current user profile using /users/me endpoint (usually available by default)
+  // Get current user profile
   async getCurrentUserProfile(token: string): Promise<User> {
     return this.request(`/users/me`, {
       method: "GET",
