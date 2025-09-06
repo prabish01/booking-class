@@ -437,6 +437,14 @@ export interface ApiClassOccurrenceClassOccurrence
   options: {
     draftAndPublish: true;
   };
+  pluginOptions: {
+    'content-manager': {
+      visible: true;
+    };
+    'content-type-builder': {
+      visible: true;
+    };
+  };
   attributes: {
     bookings: Schema.Attribute.Relation<'oneToMany', 'api::booking.booking'>;
     createdAt: Schema.Attribute.DateTime;
@@ -467,6 +475,9 @@ export interface ApiClassOccurrenceClassOccurrence
       Schema.Attribute.DefaultTo<20>;
     price: Schema.Attribute.Decimal & Schema.Attribute.Required;
     publishedAt: Schema.Attribute.DateTime;
+    slug: Schema.Attribute.UID<'title'> &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
     songThumbnail: Schema.Attribute.Media<'images'>;
     startTime: Schema.Attribute.String & Schema.Attribute.Required;
     thumbnail: Schema.Attribute.Media<'images'>;

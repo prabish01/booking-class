@@ -6,9 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useClass } from "@/hooks/use-classes";
+import { useClassByIdOrSlug } from "@/hooks/use-classes";
 import { useCreateBooking } from "@/hooks/use-bookings";
-import { getStrapiMediaURL, type CreateBookingData } from "@/lib/strapi";
+import { useAuthState } from "@/hooks/use-auth";
+import { getStrapiMediaURL, type CreateBookingData, type ClassOccurrence } from "@/lib/strapi";
 import { toast } from "@/lib/toast";
 import Image from "next/image";
 import Link from "next/link";
@@ -17,10 +18,19 @@ import { Calendar, MapPin, Clock, Users, Loader2, ArrowLeft } from "lucide-react
 export default function ClassDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const classId = params.id as string;
+  const classIdOrSlug = params.id as string;
 
-  const { data: classResponse, isLoading, error } = useClass(classId);
+  // Use TanStack Query hooks
+  const { data: classResponse, isLoading, error } = useClassByIdOrSlug(classIdOrSlug);
+  const { data: authState } = useAuthState();
   const createBookingMutation = useCreateBooking();
+
+  // Debug logging for user data
+  console.log("🔍 Class Detail Page - Auth State:", authState);
+  console.log("🔍 User Data:", authState?.user);
+  console.log("🔍 User firstName:", authState?.user?.firstName);
+  console.log("🔍 User lastName:", authState?.user?.lastName);
+
   const classItem = classResponse?.data;
 
   const [bookingType, setBookingType] = useState<"login" | "guest" | null>(null);
@@ -48,8 +58,28 @@ export default function ClassDetailPage() {
     });
   };
 
-  const formatPrice = (priceInCents: number) => {
-    return `£${(priceInCents / 100).toFixed(2)}`;
+  const formatPrice = (price: number) => {
+    // Price is already in pounds, not cents
+    return `£${price.toFixed(2)}`;
+  };
+
+  const getDuration = (classItem: ClassOccurrence) => {
+    if (classItem.durationMinutes) {
+      return `${classItem.durationMinutes} minutes`;
+    }
+    if (classItem.startTime && classItem.endTime) {
+      // Calculate duration from start and end time
+      const start = new Date(`2000-01-01 ${classItem.startTime}`);
+      const end = new Date(`2000-01-01 ${classItem.endTime}`);
+      const diffMs = end.getTime() - start.getTime();
+      const diffMinutes = Math.floor(diffMs / (1000 * 60));
+      return `${diffMinutes} minutes`;
+    }
+    return "Duration not specified";
+  };
+
+  const getAvailableSpots = (classItem: ClassOccurrence) => {
+    return classItem.spotsAvailable || classItem.maxCapacity || "Not specified";
   };
 
   const handleGuestBooking = async () => {
@@ -63,9 +93,8 @@ export default function ClassDetailPage() {
       return;
     }
 
-    // Check if user is already logged in
-    const token = localStorage.getItem("jwt");
-    if (token) {
+    // Check if user is already logged in using TanStack Query
+    if (authState?.isAuthenticated) {
       // User is logged in, create booking directly
       const bookingData: CreateBookingData = {
         classOccurrence: classItem.id,
@@ -73,7 +102,7 @@ export default function ClassDetailPage() {
         guestLastName: guestForm.lastName,
         guestEmail: guestForm.email,
         status: "confirmed",
-        amountPaidCents: classItem.price,
+        amountPaidCents: classItem.price * 100, // Convert pounds to cents
         currency: "GBP",
       };
       createBookingMutation.mutate(bookingData, {
@@ -98,18 +127,17 @@ export default function ClassDetailPage() {
       return;
     }
 
-    // Check if user is already logged in
-    const token = localStorage.getItem("jwt");
-    if (token) {
+    // Check if user is already logged in using TanStack Query
+    if (authState?.isAuthenticated && authState?.user) {
       // User is already logged in, proceed with booking
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      const user = authState.user;
       const bookingData: CreateBookingData = {
         classOccurrence: classItem.id,
         guestFirstName: user.firstName || "",
         guestLastName: user.lastName || "",
         guestEmail: user.email || "",
         status: "confirmed",
-        amountPaidCents: classItem.price,
+        amountPaidCents: classItem.price * 100, // Convert pounds to cents
         currency: "GBP",
       };
       createBookingMutation.mutate(bookingData, {
@@ -123,7 +151,7 @@ export default function ClassDetailPage() {
       });
     } else {
       // Redirect to login page with return URL
-      router.push(`/login?returnUrl=/classes/${classId}`);
+      router.push(`/login?returnUrl=/classes/${classIdOrSlug}`);
     }
   };
 
@@ -139,10 +167,14 @@ export default function ClassDetailPage() {
   }
 
   if (error || !classItem) {
+    // A slug should have at least one hyphen to distinguish from documentId
+    const isSlugParam = /^[a-z0-9]+-[a-z0-9-]+$/.test(classIdOrSlug);
+    const errorMessage = isSlugParam ? "Class not found. Slug-based URLs require the slug field to be added to your Strapi content type." : error?.message || "Class not found";
+
     return (
       <div className="min-h-screen pt-16 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-destructive mb-4">{error?.message || "Class not found"}</p>
+          <p className="text-destructive mb-4">{errorMessage}</p>
           <Link href="/classes">
             <Button>Back to Classes</Button>
           </Link>
@@ -183,16 +215,16 @@ export default function ClassDetailPage() {
               </div>
               <div className="flex items-center text-lg">
                 <Clock className="h-5 w-5 mr-3 text-primary" />
-                {formatTime(classItem.date)} ({classItem.durationMinutes} minutes)
+                {formatTime(classItem.date)} ({getDuration(classItem)})
               </div>
               <div className="flex items-center text-lg">
                 <MapPin className="h-5 w-5 mr-3 text-primary" />
                 {classItem.location}
               </div>
-              {classItem.spotsAvailable && (
+              {(classItem.spotsAvailable || classItem.maxCapacity) && (
                 <div className="flex items-center text-lg">
                   <Users className="h-5 w-5 mr-3 text-primary" />
-                  {classItem.spotsAvailable} spots available
+                  {getAvailableSpots(classItem)} spots available
                 </div>
               )}
             </div>
@@ -206,14 +238,22 @@ export default function ClassDetailPage() {
 
           {/* Booking Section */}
           <div>
-            <Card className="sticky top-24">
+            <Card>
               <CardHeader>
                 <CardTitle>Book This Class</CardTitle>
-                <CardDescription>Choose how you&apos;d like to book your spot</CardDescription>
+                <CardDescription>{authState?.isAuthenticated ? `Welcome back, ${authState.user?.firstName || authState.user?.username}!` : "Choose how you'd like to book your spot"}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                {!bookingType ? (
+                {authState?.isAuthenticated ? (
+                  // Logged-in user: Show direct booking
                   <div className="space-y-4">
+                    <div className="p-4 bg-muted rounded-lg">
+                      <h4 className="font-medium mb-2">Booking Details</h4>
+                      <div className="space-y-1 text-sm text-muted-foreground">
+                        <p>Name: {authState.user?.firstName && authState.user?.lastName ? `${authState.user.firstName} ${authState.user.lastName}` : authState.user?.username || "Not provided"}</p>
+                        <p>Email: {authState.user?.email}</p>
+                      </div>
+                    </div>
                     <Button onClick={handleLoginBooking} className="w-full" size="lg" disabled={createBookingMutation.isPending}>
                       {createBookingMutation.isPending ? (
                         <>
@@ -221,52 +261,70 @@ export default function ClassDetailPage() {
                           Creating Booking...
                         </>
                       ) : (
-                        "Login & Book"
+                        `Book Now - ${formatPrice(classItem.price)}`
                       )}
                     </Button>
-                    <div className="relative">
-                      <div className="absolute inset-0 flex items-center">
-                        <span className="w-full border-t" />
-                      </div>
-                      <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-background px-2 text-muted-foreground">Or</span>
-                      </div>
-                    </div>
-                    <Button onClick={() => setBookingType("guest")} variant="outline" className="w-full" size="lg">
-                      Book as Guest
-                    </Button>
                   </div>
-                ) : bookingType === "guest" ? (
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="firstName">First Name</Label>
-                      <Input id="firstName" value={guestForm.firstName} onChange={(e) => setGuestForm((prev) => ({ ...prev, firstName: e.target.value }))} placeholder="Enter your first name" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="lastName">Last Name</Label>
-                      <Input id="lastName" value={guestForm.lastName} onChange={(e) => setGuestForm((prev) => ({ ...prev, lastName: e.target.value }))} placeholder="Enter your last name" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
-                      <Input id="email" type="email" value={guestForm.email} onChange={(e) => setGuestForm((prev) => ({ ...prev, email: e.target.value }))} placeholder="Enter your email" />
-                    </div>
-                    <div className="space-y-3 pt-4">
-                      <Button onClick={handleGuestBooking} className="w-full" size="lg" disabled={createBookingMutation.isPending}>
-                        {createBookingMutation.isPending ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Creating Booking...
-                          </>
-                        ) : (
-                          `Proceed to Payment - ${formatPrice(classItem.price)}`
-                        )}
-                      </Button>
-                      <Button onClick={() => setBookingType(null)} variant="ghost" className="w-full" disabled={createBookingMutation.isPending}>
-                        Back
-                      </Button>
-                    </div>
-                  </div>
-                ) : null}
+                ) : (
+                  // Not logged in: Show login/guest options
+                  <>
+                    {!bookingType ? (
+                      <div className="space-y-4">
+                        <Button onClick={handleLoginBooking} className="w-full" size="lg" disabled={createBookingMutation.isPending}>
+                          {createBookingMutation.isPending ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Creating Booking...
+                            </>
+                          ) : (
+                            "Login & Book"
+                          )}
+                        </Button>
+                        <div className="relative">
+                          <div className="absolute inset-0 flex items-center">
+                            <span className="w-full border-t" />
+                          </div>
+                          <div className="relative flex justify-center text-xs uppercase">
+                            <span className="bg-background px-2 text-muted-foreground">Or</span>
+                          </div>
+                        </div>
+                        <Button onClick={() => setBookingType("guest")} variant="outline" className="w-full" size="lg">
+                          Book as Guest
+                        </Button>
+                      </div>
+                    ) : bookingType === "guest" ? (
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="firstName">First Name</Label>
+                          <Input id="firstName" value={guestForm.firstName} onChange={(e) => setGuestForm((prev) => ({ ...prev, firstName: e.target.value }))} placeholder="Enter your first name" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="lastName">Last Name</Label>
+                          <Input id="lastName" value={guestForm.lastName} onChange={(e) => setGuestForm((prev) => ({ ...prev, lastName: e.target.value }))} placeholder="Enter your last name" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="email">Email</Label>
+                          <Input id="email" type="email" value={guestForm.email} onChange={(e) => setGuestForm((prev) => ({ ...prev, email: e.target.value }))} placeholder="Enter your email" />
+                        </div>
+                        <div className="space-y-3 pt-4">
+                          <Button onClick={handleGuestBooking} className="w-full" size="lg" disabled={createBookingMutation.isPending}>
+                            {createBookingMutation.isPending ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Creating Booking...
+                              </>
+                            ) : (
+                              `Proceed to Payment - ${formatPrice(classItem.price)}`
+                            )}
+                          </Button>
+                          <Button onClick={() => setBookingType(null)} variant="ghost" className="w-full" disabled={createBookingMutation.isPending}>
+                            Back
+                          </Button>
+                        </div>
+                      </div>
+                    ) : null}
+                  </>
+                )}
 
                 <div className="text-sm text-muted-foreground">
                   <p>• Secure payment with Stripe</p>

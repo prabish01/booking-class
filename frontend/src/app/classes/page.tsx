@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { getStrapiMediaURL, type ClassOccurrence } from "@/lib/strapi";
 import { useClasses } from "@/hooks/use-classes";
+import { generateSlug } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
 import { Calendar, MapPin, Clock, Users, Loader2 } from "lucide-react";
@@ -138,7 +139,7 @@ export default function ClassesPage() {
                       {/* Price and Booking */}
                       <div className="flex items-center justify-between pt-4 border-t">
                         <div className="text-2xl font-bold text-primary">£{classItem.price}</div>
-                        <Link href={`/classes/${classItem.documentId}`}>
+                        <Link href={`/classes/${generateSlug(classItem.title)}`}>
                           <Button>Book Now</Button>
                         </Link>
                       </div>

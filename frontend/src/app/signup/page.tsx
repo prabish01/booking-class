@@ -67,7 +67,14 @@ export default function SignupPage() {
       password: formData.password,
       firstName: formData.firstName,
       lastName: formData.lastName,
+      phone: formData.phone || undefined,
+      address: formData.address || undefined,
+      dateOfBirth: formData.dateOfBirth || undefined,
+      gender: formData.gender || undefined,
+      heardAboutUs: formData.heardAboutUs || undefined,
     };
+
+    console.log("📤 Sending registration data:", userData);
 
     registerMutation.mutate(userData, {
       onSuccess: () => {

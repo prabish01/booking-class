@@ -1,23 +1,20 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { Menu, X, User, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-
-interface User {
-  id: number;
-  username: string;
-  email: string;
-  firstName?: string;
-  lastName?: string;
-}
+import { useAuthState, useLogout } from "@/hooks/use-auth";
+import { useRouter } from "next/navigation";
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
+
+  // Use TanStack Query for auth state
+  const { data: authState, isLoading } = useAuthState();
+  const logoutMutation = useLogout();
 
   const navigation = [
     { name: "Home", href: "/" },
@@ -26,37 +23,25 @@ export default function Header() {
     { name: "Contact", href: "/contact" },
   ];
 
-  useEffect(() => {
-    // Check if user is logged in
-    const token = localStorage.getItem("jwt");
-    const userData = localStorage.getItem("user");
-
-    if (token && userData) {
-      try {
-        const parsedUser = JSON.parse(userData);
-        setUser(parsedUser);
-      } catch (error) {
-        console.error("Error parsing user data:", error);
-        localStorage.removeItem("jwt");
-        localStorage.removeItem("user");
-      }
-    }
-    setIsLoading(false);
-  }, []);
-
   const handleLogout = () => {
-    localStorage.removeItem("jwt");
-    localStorage.removeItem("user");
-    setUser(null);
-    window.location.href = "/";
+    logoutMutation.mutate(undefined, {
+      onSuccess: () => {
+        router.push("/");
+      },
+    });
   };
 
   const getUserDisplayName = () => {
+    const user = authState?.user;
     if (user?.firstName && user?.lastName) {
       return `${user.firstName} ${user.lastName}`;
     }
     return user?.username || user?.email || "User";
   };
+
+  // Log current auth state for debugging
+  console.log("� Header render - Auth state:", authState);
+  console.log("� Header render - Is loading:", isLoading);
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
@@ -85,7 +70,7 @@ export default function Header() {
           <div className="hidden md:flex items-center space-x-4">
             {!isLoading && (
               <>
-                {user ? (
+                {authState?.isAuthenticated ? (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" className="flex items-center space-x-2">
@@ -103,9 +88,9 @@ export default function Header() {
                         <Link href="/bookings">My Bookings</Link>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={handleLogout} className="text-destructive">
+                      <DropdownMenuItem onClick={handleLogout} className="text-destructive" disabled={logoutMutation.isPending}>
                         <LogOut className="h-4 w-4 mr-2" />
-                        Logout
+                        {logoutMutation.isPending ? "Logging out..." : "Logout"}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -146,7 +131,7 @@ export default function Header() {
               <div className="pt-4 space-y-2">
                 {!isLoading && (
                   <>
-                    {user ? (
+                    {authState?.isAuthenticated ? (
                       <>
                         <div className="px-3 py-2 text-sm font-medium text-foreground border-b">{getUserDisplayName()}</div>
                         <Link href="/dashboard" onClick={() => setIsMenuOpen(false)}>
@@ -166,9 +151,10 @@ export default function Header() {
                             handleLogout();
                             setIsMenuOpen(false);
                           }}
+                          disabled={logoutMutation.isPending}
                         >
                           <LogOut className="h-4 w-4 mr-2" />
-                          Logout
+                          {logoutMutation.isPending ? "Logging out..." : "Logout"}
                         </Button>
                       </>
                     ) : (
