@@ -28,8 +28,8 @@ export default function ClassDetailPage() {
   // Debug logging for user data
   console.log("🔍 Class Detail Page - Auth State:", authState);
   console.log("🔍 User Data:", authState?.user);
-  console.log("🔍 User first_name:", authState?.user?.first_name);
-  console.log("🔍 User last_name:", authState?.user?.last_name);
+  console.log("🔍 User firstName:", authState?.user?.firstName);
+  console.log("🔍 User lastName:", authState?.user?.lastName);
 
   const classItem = classResponse?.data;
 
@@ -50,11 +50,16 @@ export default function ClassDetailPage() {
     });
   };
 
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString("en-GB", {
-      hour: "2-digit",
+  const formatTimeFromString = (timeStr: string) => {
+    // Parse time string in HH:MM:SS format and convert to AM/PM
+    const [hours, minutes] = timeStr.split(":").map(Number);
+    const date = new Date();
+    date.setHours(hours, minutes, 0);
+
+    return date.toLocaleTimeString("en-US", {
+      hour: "numeric",
       minute: "2-digit",
+      hour12: true,
     });
   };
 
@@ -65,12 +70,30 @@ export default function ClassDetailPage() {
 
   const getDuration = (classItem: ClassOccurrence) => {
     if (classItem.startTime && classItem.endTime) {
-      // Calculate duration from start and end time
-      const start = new Date(`2000-01-01 ${classItem.startTime}`);
-      const end = new Date(`2000-01-01 ${classItem.endTime}`);
-      const diffMs = end.getTime() - start.getTime();
-      const diffMinutes = Math.floor(diffMs / (1000 * 60));
-      return `${diffMinutes} minutes`;
+      // Parse time strings in HH:MM:SS format
+      const parseTime = (timeStr: string) => {
+        const [hours, minutes] = timeStr.split(":").map(Number);
+        return hours * 60 + minutes; // Convert to total minutes
+      };
+
+      const startMinutes = parseTime(classItem.startTime);
+      const endMinutes = parseTime(classItem.endTime);
+
+      // Handle case where end time is next day (e.g., start: 23:00, end: 01:00)
+      let durationMinutes = endMinutes - startMinutes;
+      if (durationMinutes < 0) {
+        durationMinutes += 24 * 60; // Add 24 hours worth of minutes
+      }
+
+      // Format as hr:min
+      const hours = Math.floor(durationMinutes / 60);
+      const minutes = durationMinutes % 60;
+
+      if (hours > 0) {
+        return `${hours}h ${minutes}m`;
+      } else {
+        return `${minutes}m`;
+      }
     }
     return "Duration not specified";
   };
@@ -126,8 +149,8 @@ export default function ClassDetailPage() {
       const user = authState.user;
       const bookingData: CreateBookingData = {
         classOccurrence: classItem.id,
-        guestFirstName: user.first_name || "",
-        guestLastName: user.last_name || "",
+        guestFirstName: user.firstName || "",
+        guestLastName: user.lastName || "",
         guestEmail: user.email || "",
         status: "confirmed",
         amountPaidCents: classItem.price * 100, // Convert pounds to cents
@@ -208,7 +231,7 @@ export default function ClassDetailPage() {
               </div>
               <div className="flex items-center text-lg">
                 <Clock className="h-5 w-5 mr-3 text-primary" />
-                {formatTime(classItem.date)} ({getDuration(classItem)})
+                {formatTimeFromString(classItem.startTime)} - {formatTimeFromString(classItem.endTime)} ({getDuration(classItem)})
               </div>
               <div className="flex items-center text-lg">
                 <MapPin className="h-5 w-5 mr-3 text-primary" />
@@ -234,7 +257,7 @@ export default function ClassDetailPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Book This Class</CardTitle>
-                <CardDescription>{authState?.isAuthenticated ? `Welcome back, ${authState.user?.first_name || authState.user?.username}!` : "Choose how you'd like to book your spot"}</CardDescription>
+                <CardDescription>{authState?.isAuthenticated ? `Welcome back, ${authState.user?.firstName}` : "Choose how you'd like to book your spot"}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 {authState?.isAuthenticated ? (
@@ -243,7 +266,7 @@ export default function ClassDetailPage() {
                     <div className="p-4 bg-muted rounded-lg">
                       <h4 className="font-medium mb-2">Booking Details</h4>
                       <div className="space-y-1 text-sm text-muted-foreground">
-                        <p>Name: {authState.user?.first_name && authState.user?.last_name ? `${authState.user.first_name} ${authState.user.last_name}` : authState.user?.username || "Not provided"}</p>
+                        <p>Name: {authState.user?.firstName && authState.user?.lastName ? `${authState.user.firstName} ${authState.user.lastName}` : authState.user?.username || "Not provided"}</p>
                         <p>Email: {authState.user?.email}</p>
                       </div>
                     </div>

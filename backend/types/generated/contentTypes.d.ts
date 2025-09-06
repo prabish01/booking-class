@@ -449,9 +449,9 @@ export interface ApiClassOccurrenceClassOccurrence
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    date: Schema.Attribute.DateTime & Schema.Attribute.Required;
+    date: Schema.Attribute.Date & Schema.Attribute.Required;
     description: Schema.Attribute.Text;
-    endTime: Schema.Attribute.String & Schema.Attribute.Required;
+    endTime: Schema.Attribute.Time & Schema.Attribute.Required;
     externalVideoIds: Schema.Attribute.JSON;
     instructor: Schema.Attribute.String & Schema.Attribute.Required;
     isActive: Schema.Attribute.Boolean &
@@ -478,7 +478,7 @@ export interface ApiClassOccurrenceClassOccurrence
       Schema.Attribute.Required &
       Schema.Attribute.Unique;
     songThumbnail: Schema.Attribute.Media<'images'>;
-    startTime: Schema.Attribute.String & Schema.Attribute.Required;
+    startTime: Schema.Attribute.Time & Schema.Attribute.Required;
     thumbnail: Schema.Attribute.Media<'images'>;
     title: Schema.Attribute.String & Schema.Attribute.Required;
     updatedAt: Schema.Attribute.DateTime;

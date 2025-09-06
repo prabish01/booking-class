@@ -65,13 +65,13 @@ export default function SignupPage() {
       username: formData.email,
       email: formData.email,
       password: formData.password,
-      first_name: formData.firstName,
-      last_name: formData.lastName,
+      firstName: formData.firstName,
+      lastName: formData.lastName,
       phone: formData.phone,
       address: formData.address,
-      date_of_birth: formData.dateOfBirth,
+      dateOfBirth: formData.dateOfBirth,
       gender: formData.gender,
-      hear_about_us: formData.hearAboutUs,
+      hearAboutUs: formData.hearAboutUs,
     };
 
     console.log("📤 Sending registration data:", userData);
@@ -160,8 +160,8 @@ export default function SignupPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="heardAboutUs">How did you hear about us?</Label>
-                  <Select value={formData.hearAboutUs} onValueChange={(value) => handleSelectChange("heardAboutUs", value)} disabled={registerMutation.isPending}>
+                  <Label htmlFor="hearAboutUs">How did you hear about us?</Label>
+                  <Select value={formData.hearAboutUs} onValueChange={(value) => handleSelectChange("hearAboutUs", value)} disabled={registerMutation.isPending}>
                     <SelectTrigger>
                       <SelectValue placeholder="Please select" />
                     </SelectTrigger>

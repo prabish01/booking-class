@@ -49,13 +49,13 @@ export interface User {
   id: number;
   username: string;
   email: string;
-  first_name: string;
-  last_name: string;
+  firstName: string;
+  lastName: string;
   phone: string;
   address: string;
-  date_of_birth: string;
+  dateOfBirth: string;
   gender: "male" | "female" | "non-binary" | "prefer-not-to-say";
-  hear_about_us: string;
+  hearAboutUs: string;
 }
 
 export interface DanceClass {
@@ -147,6 +147,10 @@ export interface SiteSettings {
   };
 }
 
+interface CustomRequestInit extends Omit<RequestInit, "body"> {
+  body?: Record<string, unknown> | string;
+}
+
 class StrapiAPI {
   private baseURL: string;
 
@@ -154,15 +158,35 @@ class StrapiAPI {
     this.baseURL = `${STRAPI_URL}/api`;
   }
 
-  private async request<T = unknown>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  private async request<T = unknown>(endpoint: string, options: CustomRequestInit = {}): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
+
+    // Handle body - if it's an object, stringify it; if it's already a string, use as-is
+    let processedBody: string | undefined;
+    if (options.body !== undefined) {
+      if (typeof options.body === "object") {
+        processedBody = JSON.stringify(options.body);
+      } else {
+        processedBody = options.body;
+      }
+    }
+
     const config: RequestInit = {
       headers: {
         "Content-Type": "application/json",
         ...options.headers,
       },
       ...options,
+      body: processedBody,
     };
+
+    console.log("🔍 Request Debug:", {
+      url,
+      method: config.method,
+      headers: config.headers,
+      body: config.body,
+      bodyType: typeof config.body,
+    });
 
     const response = await fetch(url, config);
 
@@ -183,20 +207,32 @@ class StrapiAPI {
     // Step 1: Register with basic fields using default /auth/local/register
     const basicRegistration: { jwt: string; user: User } = await this.request("/auth/local/register", {
       method: "POST",
-      body: JSON.stringify({
+      body: {
         username: userData.username,
         email: userData.email,
         password: userData.password,
-      }),
+      },
     });
 
     console.log("✅ Basic registration successful");
 
     // Step 2: Update user with additional fields using default /users/{id}
     try {
-      const updatedUser: User = await this.request(`/users/${basicRegistration.user.id}`, {
+      console.log("🔍 About to update user with data:", {
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        phone: userData.phone,
+        address: userData.address,
+        dateOfBirth: userData.dateOfBirth,
+        gender: userData.gender,
+        hearAboutUs: userData.hearAboutUs,
+      });
+
+      // Use direct fetch for user update to match working curl command
+      const userUpdateResponse = await fetch(`${this.baseURL}/users/${basicRegistration.user.id}`, {
         method: "PUT",
         headers: {
+          "Content-Type": "application/json",
           Authorization: `Bearer ${basicRegistration.jwt}`,
         },
         body: JSON.stringify({
@@ -209,6 +245,14 @@ class StrapiAPI {
           hearAboutUs: userData.hearAboutUs,
         }),
       });
+
+      if (!userUpdateResponse.ok) {
+        const errorBody = await userUpdateResponse.text();
+        console.error(`HTTP ${userUpdateResponse.status} for user update:`, errorBody);
+        throw new Error(`HTTP ${userUpdateResponse.status}: ${userUpdateResponse.statusText}`);
+      }
+
+      const updatedUser: User = await userUpdateResponse.json();
 
       console.log("✅ User profile updated with additional fields");
 
@@ -225,7 +269,7 @@ class StrapiAPI {
   async login(credentials: { identifier: string; password: string }): Promise<{ jwt: string; user: User }> {
     const result: { jwt: string; user: User } = await this.request("/auth/local", {
       method: "POST",
-      body: JSON.stringify(credentials),
+      body: credentials,
     });
 
     return result;

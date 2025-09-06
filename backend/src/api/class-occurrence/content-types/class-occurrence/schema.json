@@ -33,15 +33,15 @@
       "type": "text"
     },
     "date": {
-      "type": "datetime",
+      "type": "date",
       "required": true
     },
     "startTime": {
-      "type": "string",
+      "type": "time",
       "required": true
     },
     "endTime": {
-      "type": "string",
+      "type": "time",
       "required": true
     },
     "maxCapacity": {

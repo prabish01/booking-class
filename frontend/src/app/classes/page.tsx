@@ -31,17 +31,45 @@ export default function ClassesPage() {
     });
   };
 
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString("en-GB", {
-      hour: "2-digit",
+  const formatTimeFromString = (timeStr: string) => {
+    // Parse time string in HH:MM:SS format and convert to AM/PM
+    const [hours, minutes] = timeStr.split(":").map(Number);
+    const date = new Date();
+    date.setHours(hours, minutes, 0);
+
+    return date.toLocaleTimeString("en-US", {
+      hour: "numeric",
       minute: "2-digit",
+      hour12: true,
     });
   };
 
-  //   const formatPrice = (priceInCents: number) => {
-  //     return `£${(priceInCents / 100).toFixed(2)}`;
-  //   };
+  const calculateDuration = (startTime: string, endTime: string) => {
+    // Parse time strings in HH:MM:SS format
+    const parseTime = (timeStr: string) => {
+      const [hours, minutes] = timeStr.split(":").map(Number);
+      return hours * 60 + minutes; // Convert to total minutes
+    };
+
+    const startMinutes = parseTime(startTime);
+    const endMinutes = parseTime(endTime);
+
+    // Handle case where end time is next day (e.g., start: 23:00, end: 01:00)
+    let durationMinutes = endMinutes - startMinutes;
+    if (durationMinutes < 0) {
+      durationMinutes += 24 * 60; // Add 24 hours worth of minutes
+    }
+
+    // Format as hr:min
+    const hours = Math.floor(durationMinutes / 60);
+    const minutes = durationMinutes % 60;
+
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    } else {
+      return `${minutes}m`;
+    }
+  };
 
   if (isLoading) {
     return (
@@ -122,7 +150,7 @@ export default function ClassesPage() {
                       <div className="space-y-2">
                         <div className="flex items-center text-sm text-muted-foreground">
                           <Clock className="h-4 w-4 mr-2" />
-                          {formatTime(classItem.date)} ({classItem.startTime} - {classItem.endTime})
+                          {formatTimeFromString(classItem.startTime)} - {formatTimeFromString(classItem.endTime)} ({calculateDuration(classItem.startTime, classItem.endTime)})
                         </div>
                         <div className="flex items-center text-sm text-muted-foreground">
                           <MapPin className="h-4 w-4 mr-2" />
