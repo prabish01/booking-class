@@ -17,26 +17,31 @@
       "required": true
     },
     "description": {
-      "type": "richtext"
+      "type": "text"
     },
-    "thumbnail": {
-      "type": "media",
-      "multiple": false,
-      "required": true,
-      "allowedTypes": ["images"]
-    },
-    "externalUrl": {
+    "videoUrl": {
       "type": "string",
       "required": true
     },
-    "videoFile": {
-      "type": "media",
-      "multiple": false,
-      "allowedTypes": ["videos"]
+    "thumbnailUrl": {
+      "type": "string"
     },
-    "featured": {
+    "category": {
+      "type": "string"
+    },
+    "duration": {
+      "type": "integer"
+    },
+    "level": {
+      "type": "enumeration",
+      "enum": ["BEGINNER", "INTERMEDIATE", "ADVANCED"],
+      "default": "BEGINNER",
+      "required": true
+    },
+    "isPublished": {
       "type": "boolean",
-      "default": false
+      "default": false,
+      "required": true
     }
   }
 }

@@ -26,7 +26,7 @@ export default factories.createCoreController("api::class-occurrence.class-occur
             $lte: endDate,
           },
         },
-        populate: ["thumbnail", "songThumbnail", "externalVideoIds"],
+        populate: ["bookings", "thumbnail", "songThumbnail"],
       });
 
       return { data };

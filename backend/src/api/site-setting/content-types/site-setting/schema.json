@@ -1,5 +1,5 @@
 {
-  "kind": "singleType",
+  "kind": "collectionType",
   "collectionName": "site_settings",
   "info": {
     "singularName": "site-setting",
@@ -12,32 +12,17 @@
   },
   "pluginOptions": {},
   "attributes": {
-    "logo": {
-      "type": "media",
-      "multiple": false,
-      "required": true,
-      "allowedTypes": ["images"]
-    },
-    "headerLogo": {
-      "type": "media",
-      "multiple": false,
-      "required": true,
-      "allowedTypes": ["images"]
-    },
-    "headerVideo": {
-      "type": "media",
-      "multiple": false,
-      "allowedTypes": ["videos"]
-    },
-    "heroTitle": {
+    "key": {
       "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "value": {
+      "type": "text",
       "required": true
     },
-    "heroSubtitle": {
-      "type": "richtext"
-    },
-    "socials": {
-      "type": "json"
+    "description": {
+      "type": "text"
     }
   }
 }

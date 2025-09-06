@@ -16,41 +16,62 @@
       "type": "string",
       "required": true
     },
+    "description": {
+      "type": "text"
+    },
     "date": {
       "type": "datetime",
       "required": true
     },
-    "durationMinutes": {
+    "startTime": {
+      "type": "string",
+      "required": true
+    },
+    "endTime": {
+      "type": "string",
+      "required": true
+    },
+    "maxCapacity": {
       "type": "integer",
-      "default": 60,
+      "default": 20,
+      "required": true
+    },
+    "price": {
+      "type": "decimal",
+      "required": true
+    },
+    "level": {
+      "type": "enumeration",
+      "enum": ["BEGINNER", "INTERMEDIATE", "ADVANCED"],
+      "default": "BEGINNER",
+      "required": true
+    },
+    "instructor": {
+      "type": "string",
       "required": true
     },
     "location": {
-      "type": "string",
+      "type": "string"
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": true,
       "required": true
     },
     "thumbnail": {
       "type": "media",
       "multiple": false,
-      "required": true,
+      "required": false,
       "allowedTypes": ["images"]
     },
     "songThumbnail": {
       "type": "media",
       "multiple": false,
+      "required": false,
       "allowedTypes": ["images"]
     },
-    "spotsAvailable": {
-      "type": "integer"
-    },
     "externalVideoIds": {
-      "type": "relation",
-      "relation": "manyToMany",
-      "target": "api::video.video"
-    },
-    "price": {
-      "type": "integer",
-      "required": true
+      "type": "json"
     },
     "bookings": {
       "type": "relation",

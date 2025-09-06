@@ -15,7 +15,9 @@
     "user": {
       "type": "relation",
       "relation": "manyToOne",
-      "target": "plugin::users-permissions.user"
+      "target": "plugin::users-permissions.user",
+      "inversedBy": "bookings",
+      "required": true
     },
     "classOccurrence": {
       "type": "relation",
@@ -24,32 +26,28 @@
       "inversedBy": "bookings",
       "required": true
     },
+    "bookingDate": {
+      "type": "datetime",
+      "default": "2025-09-06T04:00:00.000Z"
+    },
     "status": {
       "type": "enumeration",
-      "enum": ["pending", "confirmed", "canceled", "refunded"],
-      "default": "pending",
+      "enum": ["CONFIRMED", "CANCELLED", "COMPLETED", "NO_SHOW"],
+      "default": "CONFIRMED",
       "required": true
     },
-    "amountPaidCents": {
-      "type": "integer",
+    "paymentStatus": {
+      "type": "enumeration",
+      "enum": ["PENDING", "PAID", "FAILED", "REFUNDED"],
+      "default": "PENDING",
       "required": true
     },
-    "currency": {
-      "type": "string",
-      "default": "GBP",
+    "paymentAmount": {
+      "type": "decimal",
       "required": true
     },
-    "stripePaymentIntentId": {
-      "type": "string"
-    },
-    "guestFirstName": {
-      "type": "string"
-    },
-    "guestLastName": {
-      "type": "string"
-    },
-    "guestEmail": {
-      "type": "email"
+    "notes": {
+      "type": "text"
     }
   }
 }

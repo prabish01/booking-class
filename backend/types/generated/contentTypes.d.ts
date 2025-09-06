@@ -385,7 +385,8 @@ export interface ApiBookingBooking extends Struct.CollectionTypeSchema {
     draftAndPublish: true;
   };
   attributes: {
-    amountPaidCents: Schema.Attribute.Integer & Schema.Attribute.Required;
+    bookingDate: Schema.Attribute.DateTime &
+      Schema.Attribute.DefaultTo<'2025-09-06T04:00:00.000Z'>;
     classOccurrence: Schema.Attribute.Relation<
       'manyToOne',
       'api::class-occurrence.class-occurrence'
@@ -394,32 +395,33 @@ export interface ApiBookingBooking extends Struct.CollectionTypeSchema {
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    currency: Schema.Attribute.String &
-      Schema.Attribute.Required &
-      Schema.Attribute.DefaultTo<'GBP'>;
-    guestEmail: Schema.Attribute.Email;
-    guestFirstName: Schema.Attribute.String;
-    guestLastName: Schema.Attribute.String;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
       'api::booking.booking'
     > &
       Schema.Attribute.Private;
-    publishedAt: Schema.Attribute.DateTime;
-    status: Schema.Attribute.Enumeration<
-      ['pending', 'confirmed', 'canceled', 'refunded']
+    notes: Schema.Attribute.Text;
+    paymentAmount: Schema.Attribute.Decimal & Schema.Attribute.Required;
+    paymentStatus: Schema.Attribute.Enumeration<
+      ['PENDING', 'PAID', 'FAILED', 'REFUNDED']
     > &
       Schema.Attribute.Required &
-      Schema.Attribute.DefaultTo<'pending'>;
-    stripePaymentIntentId: Schema.Attribute.String;
+      Schema.Attribute.DefaultTo<'PENDING'>;
+    publishedAt: Schema.Attribute.DateTime;
+    status: Schema.Attribute.Enumeration<
+      ['CONFIRMED', 'CANCELLED', 'COMPLETED', 'NO_SHOW']
+    > &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'CONFIRMED'>;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     user: Schema.Attribute.Relation<
       'manyToOne',
       'plugin::users-permissions.user'
-    >;
+    > &
+      Schema.Attribute.Required;
   };
 }
 
@@ -441,25 +443,33 @@ export interface ApiClassOccurrenceClassOccurrence
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     date: Schema.Attribute.DateTime & Schema.Attribute.Required;
-    durationMinutes: Schema.Attribute.Integer &
+    description: Schema.Attribute.Text;
+    endTime: Schema.Attribute.String & Schema.Attribute.Required;
+    externalVideoIds: Schema.Attribute.JSON;
+    instructor: Schema.Attribute.String & Schema.Attribute.Required;
+    isActive: Schema.Attribute.Boolean &
       Schema.Attribute.Required &
-      Schema.Attribute.DefaultTo<60>;
-    externalVideoIds: Schema.Attribute.Relation<
-      'manyToMany',
-      'api::video.video'
-    >;
+      Schema.Attribute.DefaultTo<true>;
+    level: Schema.Attribute.Enumeration<
+      ['BEGINNER', 'INTERMEDIATE', 'ADVANCED']
+    > &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'BEGINNER'>;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
       'api::class-occurrence.class-occurrence'
     > &
       Schema.Attribute.Private;
-    location: Schema.Attribute.String & Schema.Attribute.Required;
-    price: Schema.Attribute.Integer & Schema.Attribute.Required;
+    location: Schema.Attribute.String;
+    maxCapacity: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<20>;
+    price: Schema.Attribute.Decimal & Schema.Attribute.Required;
     publishedAt: Schema.Attribute.DateTime;
     songThumbnail: Schema.Attribute.Media<'images'>;
-    spotsAvailable: Schema.Attribute.Integer;
-    thumbnail: Schema.Attribute.Media<'images'> & Schema.Attribute.Required;
+    startTime: Schema.Attribute.String & Schema.Attribute.Required;
+    thumbnail: Schema.Attribute.Media<'images'>;
     title: Schema.Attribute.String & Schema.Attribute.Required;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
@@ -467,7 +477,7 @@ export interface ApiClassOccurrenceClassOccurrence
   };
 }
 
-export interface ApiSiteSettingSiteSetting extends Struct.SingleTypeSchema {
+export interface ApiSiteSettingSiteSetting extends Struct.CollectionTypeSchema {
   collectionName: 'site_settings';
   info: {
     description: 'Global site settings and content';
@@ -482,22 +492,21 @@ export interface ApiSiteSettingSiteSetting extends Struct.SingleTypeSchema {
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    headerLogo: Schema.Attribute.Media<'images'> & Schema.Attribute.Required;
-    headerVideo: Schema.Attribute.Media<'videos'>;
-    heroSubtitle: Schema.Attribute.RichText;
-    heroTitle: Schema.Attribute.String & Schema.Attribute.Required;
+    description: Schema.Attribute.Text;
+    key: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
       'api::site-setting.site-setting'
     > &
       Schema.Attribute.Private;
-    logo: Schema.Attribute.Media<'images'> & Schema.Attribute.Required;
     publishedAt: Schema.Attribute.DateTime;
-    socials: Schema.Attribute.JSON;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    value: Schema.Attribute.Text & Schema.Attribute.Required;
   };
 }
 
@@ -513,22 +522,30 @@ export interface ApiVideoVideo extends Struct.CollectionTypeSchema {
     draftAndPublish: true;
   };
   attributes: {
+    category: Schema.Attribute.String;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    description: Schema.Attribute.RichText;
-    externalUrl: Schema.Attribute.String & Schema.Attribute.Required;
-    featured: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    description: Schema.Attribute.Text;
+    duration: Schema.Attribute.Integer;
+    isPublished: Schema.Attribute.Boolean &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<false>;
+    level: Schema.Attribute.Enumeration<
+      ['BEGINNER', 'INTERMEDIATE', 'ADVANCED']
+    > &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'BEGINNER'>;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<'oneToMany', 'api::video.video'> &
       Schema.Attribute.Private;
     publishedAt: Schema.Attribute.DateTime;
-    thumbnail: Schema.Attribute.Media<'images'> & Schema.Attribute.Required;
+    thumbnailUrl: Schema.Attribute.String;
     title: Schema.Attribute.String & Schema.Attribute.Required;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    videoFile: Schema.Attribute.Media<'videos'>;
+    videoUrl: Schema.Attribute.String & Schema.Attribute.Required;
   };
 }
 

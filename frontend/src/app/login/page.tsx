@@ -31,13 +31,13 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const response = await fetch("http://localhost:1337/api/auth/local", {
+      const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          identifier: formData.email,
+          email: formData.email,
           password: formData.password,
         }),
       });

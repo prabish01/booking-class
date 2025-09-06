@@ -72,9 +72,9 @@ export default function ClassesPage() {
     });
   };
 
-  const formatPrice = (priceInCents: number) => {
-    return `£${(priceInCents / 100).toFixed(2)}`;
-  };
+//   const formatPrice = (priceInCents: number) => {
+//     return `£${(priceInCents / 100).toFixed(2)}`;
+//   };
 
   if (isLoading) {
     return (
@@ -171,7 +171,7 @@ export default function ClassesPage() {
 
                       {/* Price and Booking */}
                       <div className="flex items-center justify-between pt-4 border-t">
-                        <div className="text-2xl font-bold text-primary">{formatPrice(classItem.price)}</div>
+                        <div className="text-2xl font-bold text-primary">£{classItem.price}</div>
                         <Link href={`/classes/${classItem.documentId}`}>
                           <Button>Book Now</Button>
                         </Link>
