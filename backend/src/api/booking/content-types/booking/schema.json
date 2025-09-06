@@ -1,0 +1,55 @@
+{
+  "kind": "collectionType",
+  "collectionName": "bookings",
+  "info": {
+    "singularName": "booking",
+    "pluralName": "bookings",
+    "displayName": "Booking",
+    "description": "User bookings for class occurrences"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "user": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "plugin::users-permissions.user"
+    },
+    "classOccurrence": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::class-occurrence.class-occurrence",
+      "inversedBy": "bookings",
+      "required": true
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": ["pending", "confirmed", "canceled", "refunded"],
+      "default": "pending",
+      "required": true
+    },
+    "amountPaidCents": {
+      "type": "integer",
+      "required": true
+    },
+    "currency": {
+      "type": "string",
+      "default": "GBP",
+      "required": true
+    },
+    "stripePaymentIntentId": {
+      "type": "string"
+    },
+    "guestFirstName": {
+      "type": "string"
+    },
+    "guestLastName": {
+      "type": "string"
+    },
+    "guestEmail": {
+      "type": "email"
+    }
+  }
+}
