@@ -7,11 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useLogin } from "@/hooks/use-auth";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnUrl = searchParams.get("returnUrl");
   const loginMutation = useLogin();
 
   const [formData, setFormData] = useState({
@@ -40,8 +42,10 @@ export default function LoginPage() {
 
     loginMutation.mutate(loginData, {
       onSuccess: () => {
-        // Login successful - redirect to classes page
-        router.push("/classes");
+        // Login successful - redirect to returnUrl or classes page
+        // Use replace() instead of push() to prevent back button issues
+        const redirectTo = returnUrl || "/classes";
+        router.replace(redirectTo);
       },
       onError: (error: Error) => {
         setError(error.message);
