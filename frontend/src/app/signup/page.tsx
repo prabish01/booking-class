@@ -25,7 +25,7 @@ export default function SignupPage() {
     address: "",
     dateOfBirth: "",
     gender: "",
-    heardAboutUs: "",
+    hearAboutUs: "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -65,13 +65,13 @@ export default function SignupPage() {
       username: formData.email,
       email: formData.email,
       password: formData.password,
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      phone: formData.phone || undefined,
-      address: formData.address || undefined,
-      dateOfBirth: formData.dateOfBirth || undefined,
-      gender: formData.gender || undefined,
-      heardAboutUs: formData.heardAboutUs || undefined,
+      first_name: formData.firstName,
+      last_name: formData.lastName,
+      phone: formData.phone,
+      address: formData.address,
+      date_of_birth: formData.dateOfBirth,
+      gender: formData.gender,
+      hear_about_us: formData.hearAboutUs,
     };
 
     console.log("📤 Sending registration data:", userData);
@@ -161,7 +161,7 @@ export default function SignupPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="heardAboutUs">How did you hear about us?</Label>
-                  <Select value={formData.heardAboutUs} onValueChange={(value) => handleSelectChange("heardAboutUs", value)} disabled={registerMutation.isPending}>
+                  <Select value={formData.hearAboutUs} onValueChange={(value) => handleSelectChange("heardAboutUs", value)} disabled={registerMutation.isPending}>
                     <SelectTrigger>
                       <SelectValue placeholder="Please select" />
                     </SelectTrigger>

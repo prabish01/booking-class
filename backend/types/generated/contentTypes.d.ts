@@ -420,8 +420,7 @@ export interface ApiBookingBooking extends Struct.CollectionTypeSchema {
     user: Schema.Attribute.Relation<
       'manyToOne',
       'plugin::users-permissions.user'
-    > &
-      Schema.Attribute.Required;
+    >;
   };
 }
 
@@ -1036,7 +1035,7 @@ export interface PluginUsersPermissionsUser
       ['male', 'female', 'non-binary', 'prefer-not-to-say']
     > &
       Schema.Attribute.Required;
-    heardAboutUs: Schema.Attribute.Enumeration<
+    hearAboutUs: Schema.Attribute.Enumeration<
       [
         'social-media',
         'friend-referral',

@@ -13,26 +13,26 @@ interface RegisterData {
   username: string;
   email: string;
   password: string;
-  firstName: string;
-  lastName: string;
-  phone?: string;
-  address?: string;
-  dateOfBirth?: string;
-  gender?: string;
-  heardAboutUs?: string;
+  first_name: string;
+  last_name: string;
+  phone: string;
+  address: string;
+  date_of_birth: string;
+  gender: string;
+  hear_about_us: string;
 }
 
 interface User {
   id: number;
   username: string;
   email: string;
-  firstName?: string;
-  lastName?: string;
+  first_name?: string;
+  last_name?: string;
   phone?: string;
   address?: string;
-  dateOfBirth?: string;
+  date_of_birth?: string;
   gender?: "male" | "female" | "non-binary" | "prefer-not-to-say";
-  heardAboutUs?: string;
+  hear_about_us?: string;
 }
 
 interface AuthState {
@@ -116,7 +116,7 @@ export function useLogin() {
       });
 
       // Show success toast
-      toast.success(`Welcome back, ${data.user.firstName || data.user.username}! 🎉`);
+      toast.success(`Welcome back, ${data.user.first_name || data.user.username}! 🎉`);
     },
     onError: (error: Error) => {
       console.error("Login error:", error);
@@ -146,7 +146,7 @@ export function useRegister() {
       });
 
       // Show success toast
-      toast.success(`Welcome to Masala Moves, ${data.user.firstName || data.user.username}! 🕺💃`);
+      toast.success(`Welcome to Masala Moves, ${data.user.first_name || data.user.username}! 🕺💃`);
     },
     onError: (error: Error) => {
       console.error("Registration error:", error);

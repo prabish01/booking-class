@@ -17,7 +17,7 @@ export const classesKeys = {
 export function useClasses(params?: { startDate?: string; endDate?: string }) {
   return useQuery({
     queryKey: classesKeys.list(params || {}),
-    queryFn: () => strapiAPI.getClassOccurrences(params),
+    queryFn: () => strapiAPI.getClassOccurrence(params?.startDate || ""),
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 }
@@ -35,7 +35,16 @@ export function useClass(id: string) {
 export function useClassBySlug(slug: string) {
   return useQuery({
     queryKey: [...classesKeys.details(), "slug", slug],
-    queryFn: () => strapiAPI.getClassOccurrenceBySlug(slug),
+    queryFn: async () => {
+      const classesResponse = await strapiAPI.getClassOccurrence();
+      const matchingClass = classesResponse.data.find((classItem: ClassOccurrence) => generateSlug(classItem.title) === slug);
+
+      if (!matchingClass) {
+        throw new Error("Class not found");
+      }
+
+      return { data: matchingClass };
+    },
     enabled: !!slug,
   });
 }

@@ -1,124 +1,86 @@
 module.exports = (plugin) => {
   console.log("🔧 Loading custom users-permissions extension...");
 
-  // Extend the register controller to accept additional fields
-  const originalRegister = plugin.controllers.auth.register;
-  console.log("📝 Original register function exists:", typeof originalRegister);
-
+  // Completely override the register controller
   plugin.controllers.auth.register = async (ctx) => {
-    console.log("🚀 Custom register function called!");
-    console.log("📝 Request body received:", ctx.request.body);
-    const pluginStore = await strapi.store({ type: "plugin", name: "users-permissions" });
-    const settings = await pluginStore.get({ key: "advanced" });
+    console.log("📝 Custom register controller called with:", ctx.request.body);
 
-    if (!settings.allow_register) {
-      return ctx.badRequest("Register action is currently disabled");
-    }
-
-    const params = {
-      ...ctx.request.body,
-    };
-
-    console.log("📝 Registration params received:", params);
-
-    // Extract additional fields
-    const additionalFields = {
-      firstName: params.firstName,
-      lastName: params.lastName,
-      phone: params.phone,
-      address: params.address,
-      dateOfBirth: params.dateOfBirth,
-      gender: params.gender,
-      heardAboutUs: params.heardAboutUs,
-    };
-
-    console.log("📝 Additional fields extracted:", additionalFields);
-
-    // Remove additional fields from params for the original registration
-    delete params.firstName;
-    delete params.lastName;
-    delete params.phone;
-    delete params.address;
-    delete params.dateOfBirth;
-    delete params.gender;
-    delete params.heardAboutUs;
-
-    // Set the modified params back to the request body
-    ctx.request.body = params;
-
-    console.log("📝 Modified params for original registration:", params);
-
-    // Call the original register function
-    await originalRegister(ctx);
-
-    // If registration was successful, update the user with additional fields
-    if (ctx.body && ctx.body.user && ctx.body.user.id) {
-      try {
-        console.log("✅ Registration successful, updating user with additional fields");
-
-        // Filter out null/undefined values
-        const fieldsToUpdate = {};
-        Object.keys(additionalFields).forEach((key) => {
-          if (additionalFields[key] !== null && additionalFields[key] !== undefined && additionalFields[key] !== "") {
-            fieldsToUpdate[key] = additionalFields[key];
-          }
-        });
-
-        console.log("� Fields to update:", fieldsToUpdate);
-
-        if (Object.keys(fieldsToUpdate).length > 0) {
-          const updatedUser = await strapi.db.query("plugin::users-permissions.user").update({
-            where: { id: ctx.body.user.id },
-            data: fieldsToUpdate,
-          });
-
-          console.log("✅ User updated with additional fields:", updatedUser);
-
-          // Update the response with the complete user data
-          ctx.body.user = { ...ctx.body.user, ...fieldsToUpdate };
-        }
-      } catch (error) {
-        console.error("❌ Error updating user with additional fields:", error);
-        // Don't fail the registration if additional fields update fails
-      }
-    }
-  };
-
-  // Add the /users/me GET endpoint for fetching current user
-  plugin.routes["content-api"].routes.push({
-    method: "GET",
-    path: "/users/me",
-    handler: "user.me",
-    config: {
-      policies: [],
-      middlewares: [],
-    },
-  });
-
-  plugin.controllers.user.me = async (ctx) => {
-    if (!ctx.state.user) {
-      return ctx.unauthorized("You must be authenticated to access this resource.");
-    }
+    const { username, email, password, first_name, last_name, phone, address, date_of_birth, gender, hear_about_us } = ctx.request.body;
 
     try {
-      const user = await strapi.db.query("plugin::users-permissions.user").findOne({
-        where: { id: ctx.state.user.id },
-        populate: true,
-      });
-
-      if (!user) {
-        return ctx.notFound("User not found");
+      // Validate required fields
+      if (!username || !email || !password || !first_name || !last_name || !phone || !address || !date_of_birth || !gender || !hear_about_us) {
+        return ctx.badRequest("All fields are required");
       }
 
-      // Remove sensitive data
-      delete user.password;
-      delete user.resetPasswordToken;
-      delete user.confirmationToken;
+      // Check if registration is enabled
+      const pluginStore = await strapi.store({ type: "plugin", name: "users-permissions" });
+      const settings = await pluginStore.get({ key: "advanced" });
 
-      ctx.body = user;
+      if (!settings.allow_register) {
+        return ctx.badRequest("Register action is currently disabled");
+      }
+
+      // Check if user already exists
+      const existingUser = await strapi.query("plugin::users-permissions.user").findOne({
+        where: {
+          $or: [{ email: email.toLowerCase() }, { username }],
+        },
+      });
+
+      if (existingUser) {
+        return ctx.badRequest("Email or username already taken");
+      }
+
+      // Get default role (authenticated)
+      const defaultRole = await strapi.query("plugin::users-permissions.role").findOne({
+        where: { type: "authenticated" },
+      });
+
+      if (!defaultRole) {
+        return ctx.badRequest("Default role not found");
+      }
+
+      // Hash the password
+      const hashedPassword = await strapi.plugins["users-permissions"].services.user.hashPassword(password);
+
+      // Create user with all fields (convert snake_case to camelCase for database)
+      const user = await strapi.query("plugin::users-permissions.user").create({
+        data: {
+          username,
+          email: email.toLowerCase(),
+          password: hashedPassword,
+          firstName: first_name,
+          lastName: last_name,
+          phone,
+          address,
+          dateOfBirth: date_of_birth,
+          gender,
+          hearAboutUs: hear_about_us,
+          role: defaultRole.id,
+          confirmed: true,
+          blocked: false,
+          provider: "local",
+        },
+      });
+
+      // Generate JWT token
+      const jwt = strapi.plugins["users-permissions"].services.jwt.issue({
+        id: user.id,
+      });
+
+      // Remove password from response
+      const { password: _, ...userWithoutPassword } = user;
+
+      console.log("✅ User created successfully with all fields");
+
+      return ctx.send({
+        jwt,
+        user: userWithoutPassword,
+      });
     } catch (error) {
-      console.error("Error fetching user:", error);
-      ctx.internalServerError("Unable to fetch user");
+      console.error("❌ Registration error:", error);
+      return ctx.badRequest(`Registration failed: ${error.message}`);
     }
   };
 

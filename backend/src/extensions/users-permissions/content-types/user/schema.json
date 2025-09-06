@@ -11,6 +11,7 @@
   "options": {
     "draftAndPublish": false
   },
+  "pluginOptions": {},
   "attributes": {
     "username": {
       "type": "string",
@@ -83,13 +84,26 @@
     },
     "gender": {
       "type": "enumeration",
-      "enum": ["male", "female", "non-binary", "prefer-not-to-say"],
-      "required": true
+      "required": true,
+      "enum": [
+        "male",
+        "female",
+        "non-binary",
+        "prefer-not-to-say"
+      ]
     },
-    "heardAboutUs": {
+    "hearAboutUs": {
       "type": "enumeration",
-      "enum": ["social-media", "friend-referral", "google-search", "flyer-poster", "local-newspaper", "community-event", "other"],
-      "required": true
+      "required": true,
+      "enum": [
+        "social-media",
+        "friend-referral",
+        "google-search",
+        "flyer-poster",
+        "local-newspaper",
+        "community-event",
+        "other"
+      ]
     },
     "phone": {
       "type": "string"
@@ -97,7 +111,9 @@
     "profilePicture": {
       "type": "media",
       "multiple": false,
-      "allowedTypes": ["images"]
+      "allowedTypes": [
+        "images"
+      ]
     },
     "bookings": {
       "type": "relation",
