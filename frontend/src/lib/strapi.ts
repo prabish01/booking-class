@@ -120,13 +120,12 @@ export interface Booking {
 
 export interface CreateBookingData {
   classOccurrence: number;
-  guestFirstName?: string;
-  guestLastName?: string;
-  guestEmail?: string;
-  guestPhone?: string;
-  status: "pending" | "confirmed" | "cancelled";
-  amountPaidCents?: number;
-  currency?: string;
+  user?: number; // User ID for authenticated bookings
+  bookingDate?: string;
+  status: "CONFIRMED" | "CANCELLED" | "COMPLETED" | "NO_SHOW";
+  paymentStatus: "PENDING" | "PAID" | "FAILED" | "REFUNDED";
+  paymentAmount: number; // Amount in pounds (decimal)
+  notes?: string;
 }
 
 export interface SiteSettings {
@@ -313,10 +312,37 @@ class StrapiAPI {
   }
 
   // Bookings
-  async createBooking(data: Partial<Booking>): Promise<StrapiResponse<Booking>> {
-    return this.request("/bookings", {
+  async createBooking(data: CreateBookingData, token?: string): Promise<StrapiResponse<Booking>> {
+    const headers: Record<string, string> = {};
+
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    // Transform relation fields to Strapi v5 relation input format
+    const transformedData: Record<string, unknown> = {
+      classOccurrence: data.classOccurrence,
+      user: data.user,
+      bookingDate: data.bookingDate,
+      status: data.status,
+      paymentStatus: data.paymentStatus,
+      paymentAmount: data.paymentAmount,
+      notes: data.notes,
+    };
+
+    if (typeof data.classOccurrence === "number") {
+      transformedData.classOccurrence = { connect: [data.classOccurrence] };
+    }
+
+    if (typeof data.user === "number") {
+      transformedData.user = { connect: [data.user] };
+    }
+
+    // Use standard endpoint
+    return this.request("/bookings/create", {
       method: "POST",
-      body: JSON.stringify({ data }),
+      headers,
+      body: { data: transformedData },
     });
   }
 

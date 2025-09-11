@@ -11,6 +11,7 @@ import { useCreateBooking } from "@/hooks/use-bookings";
 import { useAuthState } from "@/hooks/use-auth";
 import { getStrapiMediaURL, type CreateBookingData, type ClassOccurrence } from "@/lib/strapi";
 import { toast } from "@/lib/toast";
+import StripeEmbeddedCheckout from "@/components/stripe/StripeEmbeddedCheckout";
 import Image from "next/image";
 import Link from "next/link";
 import { Calendar, MapPin, Clock, Users, Loader2, ArrowLeft } from "lucide-react";
@@ -25,15 +26,23 @@ export default function ClassDetailPage() {
   const { data: authState } = useAuthState();
   const createBookingMutation = useCreateBooking();
 
-  // Debug logging for user data
-  console.log("🔍 Class Detail Page - Auth State:", authState);
-  console.log("🔍 User Data:", authState?.user);
-  console.log("🔍 User firstName:", authState?.user?.firstName);
-  console.log("🔍 User lastName:", authState?.user?.lastName);
+  // // Debug logging for user data
+  // console.log("🔍 Class Detail Page - Auth State:", authState);
+  // console.log("🔍 User Data:", authState?.user);
+  // console.log("🔍 User firstName:", authState?.user?.firstName);
+  // console.log("🔍 User lastName:", authState?.user?.lastName);
 
   const classItem = classResponse?.data;
 
   const [bookingType, setBookingType] = useState<"login" | "guest" | null>(null);
+  const [showPayment, setShowPayment] = useState(false);
+  const [pendingBookingId, setPendingBookingId] = useState<string | null>(null);
+  const [paymentData, setPaymentData] = useState<{
+    amount: number;
+    currency: string;
+    customerName: string;
+    customerEmail: string;
+  } | null>(null);
   const [guestForm, setGuestForm] = useState({
     firstName: "",
     lastName: "",
@@ -109,32 +118,33 @@ export default function ClassDetailPage() {
       return;
     }
 
-    // Check if user is already logged in using TanStack Query
-    if (authState?.isAuthenticated) {
-      // User is logged in, create booking directly
-      const bookingData: CreateBookingData = {
-        classOccurrence: classItem.id,
-        guestFirstName: guestForm.firstName,
-        guestLastName: guestForm.lastName,
-        guestEmail: guestForm.email,
-        status: "confirmed",
-        amountPaidCents: classItem.price * 100, // Convert pounds to cents
-        currency: "GBP",
-      };
-      createBookingMutation.mutate(bookingData, {
-        onSuccess: () => {
-          toast.success("Booking confirmed! You'll receive a confirmation email shortly.");
-          setBookingType(null);
-          setGuestForm({ firstName: "", lastName: "", email: "" });
-        },
-        onError: (error: Error) => {
-          toast.error(`Booking failed: ${error.message}`);
-        },
-      });
-    } else {
-      // For now, show a message about payment implementation
-      toast.info("Payment integration with Stripe will be implemented next. For now, please login to book.");
-    }
+    // Create pending booking first
+    const bookingData: CreateBookingData = {
+      classOccurrence: classItem.id,
+      // No user ID for guest bookings
+      bookingDate: new Date().toISOString(),
+      status: "CONFIRMED", // Use schema-compliant status
+      paymentStatus: "PENDING", // Payment pending until Stripe confirmation
+      paymentAmount: classItem.price, // Amount in pounds
+      notes: `Guest booking for ${guestForm.firstName} ${guestForm.lastName} (${guestForm.email})`,
+    };
+
+    createBookingMutation.mutate(bookingData, {
+      onSuccess: (response) => {
+        const bookingId = String(response.data.id);
+        setPendingBookingId(bookingId);
+        setPaymentData({
+          amount: classItem.price,
+          currency: "gbp",
+          customerName: `${guestForm.firstName} ${guestForm.lastName}`,
+          customerEmail: guestForm.email,
+        });
+        setShowPayment(true);
+      },
+      onError: (error: Error) => {
+        toast.error(`Failed to create booking: ${error.message}`);
+      },
+    });
   };
 
   const handleLoginBooking = () => {
@@ -145,24 +155,35 @@ export default function ClassDetailPage() {
 
     // Check if user is already logged in using TanStack Query
     if (authState?.isAuthenticated && authState?.user) {
-      // User is already logged in, proceed with booking
+      // User is already logged in, create pending booking and proceed with payment
       const user = authState.user;
       const bookingData: CreateBookingData = {
         classOccurrence: classItem.id,
-        guestFirstName: user.firstName || "",
-        guestLastName: user.lastName || "",
-        guestEmail: user.email || "",
-        status: "confirmed",
-        amountPaidCents: classItem.price * 100, // Convert pounds to cents
-        currency: "GBP",
+        user: user.id, // Add user ID for authenticated booking
+        bookingDate: new Date().toISOString(),
+        status: "CONFIRMED", // Use schema-compliant status
+        paymentStatus: "PENDING", // Payment pending until Stripe confirmation
+        paymentAmount: classItem.price, // Amount in pounds
+        notes: `Booking for ${user.firstName} ${user.lastName} (${user.email})`,
       };
+
+      console.log("🎯 Creating booking with data:", bookingData);
+      console.log("🎯 Class item:", classItem);
+
       createBookingMutation.mutate(bookingData, {
-        onSuccess: () => {
-          toast.success("Booking confirmed! You'll receive a confirmation email shortly.");
-          router.push("/bookings"); // Redirect to bookings page
+        onSuccess: (response) => {
+          const bookingId = String(response.data.id);
+          setPendingBookingId(bookingId);
+          setPaymentData({
+            amount: classItem.price,
+            currency: "gbp",
+            customerName: `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.username || "User",
+            customerEmail: user.email || "",
+          });
+          setShowPayment(true);
         },
         onError: (error: Error) => {
-          toast.error(`Booking failed: ${error.message}`);
+          toast.error(`Failed to create booking: ${error.message}`);
         },
       });
     } else {
@@ -170,6 +191,15 @@ export default function ClassDetailPage() {
       router.push(`/login?returnUrl=/classes/${classIdOrSlug}`);
     }
   };
+
+  const handlePaymentCancel = () => {
+    setShowPayment(false);
+    setPendingBookingId(null);
+    setPaymentData(null);
+    // Keep the form filled so user can try again
+  };
+
+  console.log("Booking data:", paymentData);
 
   if (isLoading) {
     return (
@@ -254,101 +284,107 @@ export default function ClassDetailPage() {
 
           {/* Booking Section */}
           <div>
-            <Card>
-              <CardHeader>
-                <CardTitle>Book This Class</CardTitle>
-                <CardDescription>{authState?.isAuthenticated ? `Welcome back, ${authState.user?.firstName}` : "Choose how you'd like to book your spot"}</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {authState?.isAuthenticated ? (
-                  // Logged-in user: Show direct booking
-                  <div className="space-y-4">
-                    <div className="p-4 bg-muted rounded-lg">
-                      <h4 className="font-medium mb-2">Booking Details</h4>
-                      <div className="space-y-1 text-sm text-muted-foreground">
-                        <p>Name: {authState.user?.firstName && authState.user?.lastName ? `${authState.user.firstName} ${authState.user.lastName}` : authState.user?.username || "Not provided"}</p>
-                        <p>Email: {authState.user?.email}</p>
+            {showPayment && pendingBookingId && paymentData ? (
+              // Show Stripe Embedded Checkout
+              <StripeEmbeddedCheckout bookingId={pendingBookingId} amount={paymentData.amount} customerName={paymentData.customerName} customerEmail={paymentData.customerEmail} onCancel={handlePaymentCancel} />
+            ) : (
+              // Show booking form
+              <Card>
+                <CardHeader>
+                  <CardTitle>Book This Class</CardTitle>
+                  <CardDescription>{authState?.isAuthenticated ? `Welcome back, ${authState.user?.firstName}` : "Choose how you'd like to book your spot"}</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {authState?.isAuthenticated ? (
+                    // Logged-in user: Show direct booking
+                    <div className="space-y-4">
+                      <div className="p-4 bg-muted rounded-lg">
+                        <h4 className="font-medium mb-2">Booking Details</h4>
+                        <div className="space-y-1 text-sm text-muted-foreground">
+                          <p>Name: {authState.user?.firstName && authState.user?.lastName ? `${authState.user.firstName} ${authState.user.lastName}` : authState.user?.username || "Not provided"}</p>
+                          <p>Email: {authState.user?.email}</p>
+                        </div>
                       </div>
+                      <Button onClick={handleLoginBooking} className="w-full" size="lg" disabled={createBookingMutation.isPending}>
+                        {createBookingMutation.isPending ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Creating Booking...
+                          </>
+                        ) : (
+                          `Book Now - ${formatPrice(classItem.price)}`
+                        )}
+                      </Button>
                     </div>
-                    <Button onClick={handleLoginBooking} className="w-full" size="lg" disabled={createBookingMutation.isPending}>
-                      {createBookingMutation.isPending ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Creating Booking...
-                        </>
-                      ) : (
-                        `Book Now - ${formatPrice(classItem.price)}`
-                      )}
-                    </Button>
-                  </div>
-                ) : (
-                  // Not logged in: Show login/guest options
-                  <>
-                    {!bookingType ? (
-                      <div className="space-y-4">
-                        <Button onClick={handleLoginBooking} className="w-full" size="lg" disabled={createBookingMutation.isPending}>
-                          {createBookingMutation.isPending ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Creating Booking...
-                            </>
-                          ) : (
-                            "Login & Book"
-                          )}
-                        </Button>
-                        <div className="relative">
-                          <div className="absolute inset-0 flex items-center">
-                            <span className="w-full border-t" />
-                          </div>
-                          <div className="relative flex justify-center text-xs uppercase">
-                            <span className="bg-background px-2 text-muted-foreground">Or</span>
-                          </div>
-                        </div>
-                        <Button onClick={() => setBookingType("guest")} variant="outline" className="w-full" size="lg">
-                          Book as Guest
-                        </Button>
-                      </div>
-                    ) : bookingType === "guest" ? (
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="firstName">First Name</Label>
-                          <Input id="firstName" value={guestForm.firstName} onChange={(e) => setGuestForm((prev) => ({ ...prev, firstName: e.target.value }))} placeholder="Enter your first name" />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="lastName">Last Name</Label>
-                          <Input id="lastName" value={guestForm.lastName} onChange={(e) => setGuestForm((prev) => ({ ...prev, lastName: e.target.value }))} placeholder="Enter your last name" />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="email">Email</Label>
-                          <Input id="email" type="email" value={guestForm.email} onChange={(e) => setGuestForm((prev) => ({ ...prev, email: e.target.value }))} placeholder="Enter your email" />
-                        </div>
-                        <div className="space-y-3 pt-4">
-                          <Button onClick={handleGuestBooking} className="w-full" size="lg" disabled={createBookingMutation.isPending}>
+                  ) : (
+                    // Not logged in: Show login/guest options
+                    <>
+                      {!bookingType ? (
+                        <div className="space-y-4">
+                          <Button onClick={handleLoginBooking} className="w-full" size="lg" disabled={createBookingMutation.isPending}>
                             {createBookingMutation.isPending ? (
                               <>
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                 Creating Booking...
                               </>
                             ) : (
-                              `Proceed to Payment - ${formatPrice(classItem.price)}`
+                              "Login & Book"
                             )}
                           </Button>
-                          <Button onClick={() => setBookingType(null)} variant="ghost" className="w-full" disabled={createBookingMutation.isPending}>
-                            Back
+                          <div className="relative">
+                            <div className="absolute inset-0 flex items-center">
+                              <span className="w-full border-t" />
+                            </div>
+                            <div className="relative flex justify-center text-xs uppercase">
+                              <span className="bg-background px-2 text-muted-foreground">Or</span>
+                            </div>
+                          </div>
+                          <Button onClick={() => setBookingType("guest")} variant="outline" className="w-full" size="lg">
+                            Book as Guest
                           </Button>
                         </div>
-                      </div>
-                    ) : null}
-                  </>
-                )}
+                      ) : bookingType === "guest" ? (
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="firstName">First Name</Label>
+                            <Input id="firstName" value={guestForm.firstName} onChange={(e) => setGuestForm((prev) => ({ ...prev, firstName: e.target.value }))} placeholder="Enter your first name" />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="lastName">Last Name</Label>
+                            <Input id="lastName" value={guestForm.lastName} onChange={(e) => setGuestForm((prev) => ({ ...prev, lastName: e.target.value }))} placeholder="Enter your last name" />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="email">Email</Label>
+                            <Input id="email" type="email" value={guestForm.email} onChange={(e) => setGuestForm((prev) => ({ ...prev, email: e.target.value }))} placeholder="Enter your email" />
+                          </div>
+                          <div className="space-y-3 pt-4">
+                            <Button onClick={handleGuestBooking} className="w-full" size="lg" disabled={createBookingMutation.isPending}>
+                              {createBookingMutation.isPending ? (
+                                <>
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  Creating Booking...
+                                </>
+                              ) : (
+                                `Proceed to Payment - ${formatPrice(classItem.price)}`
+                              )}
+                            </Button>
+                            <Button onClick={() => setBookingType(null)} variant="ghost" className="w-full" disabled={createBookingMutation.isPending}>
+                              Back
+                            </Button>
+                          </div>
+                        </div>
+                      ) : null}
+                    </>
+                  )}
 
-                <div className="text-sm text-muted-foreground">
-                  <p>• Secure payment with Stripe</p>
-                  <p>• Instant booking confirmation</p>
-                  <p>• Cancel up to 24 hours before class</p>
-                </div>
-              </CardContent>
-            </Card>
+                  <div className="text-sm text-muted-foreground">
+                    <p>• Secure payment with Stripe</p>
+                    <p>• Instant booking confirmation</p>
+                    <p>• Cancel up to 24 hours before class</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>

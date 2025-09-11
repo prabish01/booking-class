@@ -31,23 +31,13 @@
     },
     "status": {
       "type": "enumeration",
-      "enum": [
-        "CONFIRMED",
-        "CANCELLED",
-        "COMPLETED",
-        "NO_SHOW"
-      ],
+      "enum": ["CONFIRMED", "CANCELLED", "COMPLETED", "NO_SHOW"],
       "default": "CONFIRMED",
       "required": true
     },
     "paymentStatus": {
       "type": "enumeration",
-      "enum": [
-        "PENDING",
-        "PAID",
-        "FAILED",
-        "REFUNDED"
-      ],
+      "enum": ["PENDING", "PAID", "FAILED", "REFUNDED"],
       "default": "PENDING",
       "required": true
     },

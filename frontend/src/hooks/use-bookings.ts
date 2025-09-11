@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { strapiAPI, type Booking, type CreateBookingData } from "@/lib/strapi";
+import { strapiAPI, type CreateBookingData } from "@/lib/strapi";
 
 // Query key factory
 export const bookingsKeys = {
@@ -27,7 +27,11 @@ export function useCreateBooking() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (bookingData: CreateBookingData) => strapiAPI.createBooking(bookingData),
+    mutationFn: (bookingData: CreateBookingData) => {
+      // Get JWT token from localStorage for authentication (optional for guest bookings)
+      const token = localStorage.getItem("jwt");
+      return strapiAPI.createBooking(bookingData, token || undefined);
+    },
     onSuccess: () => {
       // Invalidate bookings list
       queryClient.invalidateQueries({ queryKey: bookingsKeys.lists() });
