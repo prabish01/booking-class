@@ -186,6 +186,12 @@ class StrapiAPI {
       body: config.body,
       bodyType: typeof config.body,
     });
+    console.log("🔍 Final Request Configuration:", {
+      url,
+      method: config.method,
+      headers: config.headers,
+      body: config.body,
+    });
 
     const response = await fetch(url, config);
 
@@ -319,30 +325,27 @@ class StrapiAPI {
       headers.Authorization = `Bearer ${token}`;
     }
 
-    // Transform relation fields to Strapi v5 relation input format
-    const transformedData: Record<string, unknown> = {
-      classOccurrence: data.classOccurrence,
-      user: data.user,
-      bookingDate: data.bookingDate,
-      status: data.status,
-      paymentStatus: data.paymentStatus,
-      paymentAmount: data.paymentAmount,
-      notes: data.notes,
+    // Wrap the payload in a `data` key as required by the backend
+    const requestBody = {
+      data: {
+        classOccurrence: data.classOccurrence,
+        user: data.user,
+        status: data.status,
+        paymentStatus: data.paymentStatus,
+        paymentAmount: data.paymentAmount,
+        // Only include optional fields if they have values
+        ...(data.bookingDate && { bookingDate: data.bookingDate }),
+        ...(data.notes && { notes: data.notes }),
+      },
     };
 
-    if (typeof data.classOccurrence === "number") {
-      transformedData.classOccurrence = { connect: [data.classOccurrence] };
-    }
+    console.log("📦 Booking request payload:", JSON.stringify(requestBody, null, 2));
 
-    if (typeof data.user === "number") {
-      transformedData.user = { connect: [data.user] };
-    }
-
-    // Use standard endpoint
+    // CRITICAL: Use the actual requestBody, not hardcoded values!
     return this.request("/bookings/create", {
       method: "POST",
       headers,
-      body: { data: transformedData },
+      body: requestBody, // Pass the object directly - request method handles JSON.stringify
     });
   }
 

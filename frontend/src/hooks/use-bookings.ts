@@ -28,6 +28,7 @@ export function useCreateBooking() {
 
   return useMutation({
     mutationFn: (bookingData: CreateBookingData) => {
+      console.log("📤 Sending booking data to backend:", bookingData);
       // Get JWT token from localStorage for authentication (optional for guest bookings)
       const token = localStorage.getItem("jwt");
       return strapiAPI.createBooking(bookingData, token || undefined);
