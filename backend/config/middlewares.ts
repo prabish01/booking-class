@@ -13,7 +13,15 @@ export default [
   },
   "strapi::poweredBy",
   "strapi::query",
-  "strapi::body",
+  {
+    name: "strapi::body",
+    config: {
+      jsonLimit: "10mb",
+      formLimit: "10mb",
+      textLimit: "10mb",
+      raw: true, // Required for Stripe webhooks
+    },
+  },
   "strapi::session",
   "strapi::favicon",
   "strapi::public",
