@@ -13,11 +13,18 @@ export async function POST(request: Request) {
       body: JSON.stringify({ classId, price, user }),
     });
 
+    const data = await response.json();
+
     if (!response.ok) {
-      throw new Error("Failed to create checkout session");
+      console.error("Strapi error:", data);
+      return NextResponse.json({ error: data.error?.message || "Failed to create checkout session" }, { status: response.status });
     }
 
-    const data = await response.json();
+    if (!data.url) {
+      console.error("Missing URL in response:", data);
+      return NextResponse.json({ error: "Invalid checkout session response" }, { status: 500 });
+    }
+
     return NextResponse.json(data);
   } catch (error) {
     console.error("Error creating checkout session:", error);

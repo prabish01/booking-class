@@ -29,31 +29,24 @@ export default function BookingSuccessPage() {
     const checkSessionStatus = async () => {
       try {
         const response = await fetch(`/api/session-status?session_id=${sessionId}`);
+        const data = await response.json();
+
+        console.log("Session status response:", data);
 
         if (!response.ok) {
-          throw new Error("Failed to get session status");
+          console.error("Session status error:", data);
+          throw new Error(data.error || "Failed to get session status");
         }
 
-        const data = await response.json();
         setSessionData(data);
 
-        if (data.status === "complete") {
-          // Update booking status to PAID
-          if (bookingId && data.payment_intent) {
-            await fetch("/api/confirm-booking", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                bookingId,
-                paymentIntentId: data.payment_intent,
-              }),
-            });
-          }
+        if (data.status === "complete" || data.status === "paid") {
           setStatus("success");
-        } else {
+        } else if (data.status === "expired" || data.status === "canceled") {
           setStatus("failed");
+        } else {
+          // For other statuses like 'open', keep loading
+          setTimeout(checkSessionStatus, 2000); // Poll every 2 seconds
         }
       } catch (error) {
         console.error("Error checking session status:", error);

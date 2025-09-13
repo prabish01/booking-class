@@ -306,7 +306,7 @@ class StrapiAPI {
     });
   }
 
-  // Get all upcoming classes
+  // Get all upcoming classes - public endpoint
   async getAllUpcomingClassOccurrences(): Promise<StrapiResponse<ClassOccurrence[]>> {
     const today = new Date().toISOString().split("T")[0];
     return this.request(`/class-occurrences?filters[date][$gte]=${today}&sort=date:asc&populate=thumbnail`);
@@ -315,6 +315,13 @@ class StrapiAPI {
   // Get class occurrence by ID
   async getClassOccurrence(id: string): Promise<StrapiResponse<ClassOccurrence>> {
     return this.request(`/class-occurrences/${id}?populate=thumbnail`);
+  }
+
+  // Delete class occurrence
+  async deleteClassOccurrence(id: string): Promise<void> {
+    return this.request(`/class-occurrences/${id}`, {
+      method: "DELETE",
+    });
   }
 
   // Bookings
