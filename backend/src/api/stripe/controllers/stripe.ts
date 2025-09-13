@@ -1,3 +1,5 @@
+import Stripe from "stripe";
+
 export default {
   async createCheckoutSession(ctx) {
     try {
@@ -41,60 +43,36 @@ export default {
   },
 
   async webhook(ctx) {
+    const rawBody = ctx.request.body[Symbol.for("unparsedBody")];
+
+    console.log("🔍 Raw body (unparsed):", rawBody);
+
+    const signature = ctx.request.headers["stripe-signature"];
+    const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+    let event;
+    try {
+      event = Stripe.webhooks.constructEvent(rawBody, signature, endpointSecret);
+
+      ctx.request.event = event;
+      console.log("Webhook signature verified successfully");
+    } catch (err) {
+      console.error("Webhook signature verification failed:", err.message);
+      ctx.status = 400;
+      ctx.body = { error: `Webhook Error: ${err.message}` };
+      return;
+    }
+
     console.log("🔥 WEBHOOK ENDPOINT HIT! 🔥", {
       method: ctx.request.method,
-      url: ctx.request.url,
-      headers: Object.keys(ctx.request.headers),
-      hasRawBody: !!ctx.state.rawBody,
-      rawBodyLength: ctx.state.rawBody?.length,
     });
 
+    // // Simple test response first
+    // ctx.status = 200;
+    // ctx.body = { received: true, test: "webhook reached" };
+    // return;
+
     try {
-      console.log("Starting webhook processing...", {
-        method: ctx.request.method,
-        url: ctx.request.url,
-        hasRawBody: !!ctx.state.rawBody,
-        rawBodyLength: ctx.state.rawBody?.length,
-      });
-
-      const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
-      const signature = ctx.request.headers["stripe-signature"];
-      const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET || "whsec_fef3d0d2587c6905bad5836c88dbccd3893467b60fc53dd9960c262c7f52afed";
-
-      if (!signature) {
-        console.error("Missing stripe-signature header");
-        ctx.status = 400;
-        ctx.body = { error: "Missing stripe-signature header" };
-        return;
-      }
-
-      // Get the raw body from ctx.state where our middleware stored it
-      const rawBody = ctx.state.rawBody;
-
-      if (!rawBody || !Buffer.isBuffer(rawBody)) {
-        console.error("Invalid or missing raw body");
-        ctx.status = 400;
-        ctx.body = { error: "Missing raw body for webhook verification" };
-        return;
-      }
-
-      console.log("Processing webhook:", {
-        signature: signature ? signature.substring(0, 20) + "..." : "missing",
-        bodyLength: rawBody.length,
-        bodyType: typeof rawBody,
-      });
-
-      let event;
-      try {
-        event = stripe.webhooks.constructEvent(rawBody, signature, endpointSecret);
-        console.log("Webhook signature verified successfully");
-      } catch (err) {
-        console.error("Webhook signature verification failed:", err.message);
-        ctx.status = 400;
-        ctx.body = { error: `Webhook Error: ${err.message}` };
-        return;
-      }
-
       console.log("Received event:", event.type, event.id);
 
       // Handle different event types

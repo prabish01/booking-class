@@ -15,6 +15,7 @@ export default {
       config: {
         auth: false,
         policies: [],
+        body: {enabled: false},
       },
     },
   ],

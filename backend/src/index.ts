@@ -1,4 +1,5 @@
 // import type { Core } from '@strapi/strapi';
+import Stripe from "stripe";
 
 export default {
   /**
@@ -7,36 +8,20 @@ export default {
    *
    * This gives you an opportunity to extend code.
    */
-  register({ strapi }) {
-    const webhookPath = "/api/stripe/webhook/";
+  // register({ strapi }) {
+  //   const webhookPath = "/api/stripe/webhook/";
 
-    // Add a custom middleware for Stripe webhooks
-    strapi.server.app.use(async (ctx, next) => {
-      if (ctx.path === webhookPath && ctx.method === "POST") {
-        // Disable body parser for webhook requests
-        ctx.disableBodyParser = true;
+  //   // Add a custom middleware for Stripe webhooks
+  //   strapi.server.app.use(async (ctx, next) => {
+  //     if (ctx.path === webhookPath && ctx.method === "POST") {
+  //       console.log("==================");
+  //       console.log(ctx);
+  //       console.log("==================");
 
-        // Get raw body for webhook
-        const chunks = [];
-        for await (const chunk of ctx.req) {
-          chunks.push(chunk);
-        }
-        const rawBody = Buffer.concat(chunks);
-
-        // Store raw body where the webhook handler can access it
-        ctx.request.body = rawBody.toString("utf8");
-        ctx.state.rawBody = rawBody;
-
-        console.log("Webhook request received:", {
-          path: ctx.path,
-          method: ctx.method,
-          bodyLength: rawBody.length,
-          contentType: ctx.get("content-type"),
-        });
-      }
-      await next();
-    });
-  },
+  //     }
+  //     await next();
+  //   });
+  // },
 
   /**
    * An asynchronous bootstrap function that runs before
