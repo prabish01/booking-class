@@ -21,8 +21,8 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({
         data: {
-          status: "confirmed",
-          stripePaymentIntentId: paymentIntentId,
+          paymentStatus: "PAID", // Update payment status to PAID
+          notes: `Payment confirmed via Stripe. Payment Intent: ${paymentIntentId}`,
         },
       }),
     });

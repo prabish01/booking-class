@@ -7,9 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useClassByIdOrSlug } from "@/hooks/use-classes";
-import { useCreateBooking } from "@/hooks/use-bookings";
 import { useAuthState } from "@/hooks/use-auth";
-import { getStrapiMediaURL, type CreateBookingData, type ClassOccurrence } from "@/lib/strapi";
+import { getStrapiMediaURL, type ClassOccurrence } from "@/lib/strapi";
 import { toast } from "@/lib/toast";
 import Image from "next/image";
 import Link from "next/link";
@@ -23,17 +22,18 @@ export default function ClassDetailPage() {
   // Use TanStack Query hooks
   const { data: classResponse, isLoading, error } = useClassByIdOrSlug(classIdOrSlug);
   const { data: authState } = useAuthState();
-  const createBookingMutation = useCreateBooking();
-
-  // Debug logging for user data
-  console.log("🔍 Class Detail Page - Auth State:", authState);
-  console.log("🔍 User Data:", authState?.user);
-  console.log("🔍 User firstName:", authState?.user?.firstName);
-  console.log("🔍 User lastName:", authState?.user?.lastName);
 
   const classItem = classResponse?.data;
 
   const [bookingType, setBookingType] = useState<"login" | "guest" | null>(null);
+  const [showPayment, setShowPayment] = useState(false);
+  const [pendingBookingId, setPendingBookingId] = useState<string | null>(null);
+  const [paymentData, setPaymentData] = useState<{
+    amount: number;
+    currency: string;
+    customerName: string;
+    customerEmail: string;
+  } | null>(null);
   const [guestForm, setGuestForm] = useState({
     firstName: "",
     lastName: "",
@@ -98,76 +98,34 @@ export default function ClassDetailPage() {
     return "Duration not specified";
   };
 
-  const handleGuestBooking = async () => {
-    if (!guestForm.firstName || !guestForm.lastName || !guestForm.email) {
-      toast.error("Please fill in all guest details");
-      return;
-    }
-
+  // Updated handleBooking to integrate Stripe Checkout
+  const handleBooking = async () => {
     if (!classItem) {
       toast.error("Class information not available");
       return;
     }
 
-    // Check if user is already logged in using TanStack Query
-    if (authState?.isAuthenticated) {
-      // User is logged in, create booking directly
-      const bookingData: CreateBookingData = {
-        classOccurrence: classItem.id,
-        guestFirstName: guestForm.firstName,
-        guestLastName: guestForm.lastName,
-        guestEmail: guestForm.email,
-        status: "confirmed",
-        amountPaidCents: classItem.price * 100, // Convert pounds to cents
-        currency: "GBP",
-      };
-      createBookingMutation.mutate(bookingData, {
-        onSuccess: () => {
-          toast.success("Booking confirmed! You'll receive a confirmation email shortly.");
-          setBookingType(null);
-          setGuestForm({ firstName: "", lastName: "", email: "" });
+    try {
+      const response = await fetch("/api/stripe/create-checkout-session", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-        onError: (error: Error) => {
-          toast.error(`Booking failed: ${error.message}`);
-        },
+        body: JSON.stringify({
+          classId: classItem.id,
+          price: classItem.price,
+          user: authState?.user?.id || null,
+        }),
       });
-    } else {
-      // For now, show a message about payment implementation
-      toast.info("Payment integration with Stripe will be implemented next. For now, please login to book.");
-    }
-  };
 
-  const handleLoginBooking = () => {
-    if (!classItem) {
-      toast.error("Class information not available");
-      return;
-    }
+      if (!response.ok) {
+        throw new Error("Failed to create Stripe Checkout session");
+      }
 
-    // Check if user is already logged in using TanStack Query
-    if (authState?.isAuthenticated && authState?.user) {
-      // User is already logged in, proceed with booking
-      const user = authState.user;
-      const bookingData: CreateBookingData = {
-        classOccurrence: classItem.id,
-        guestFirstName: user.firstName || "",
-        guestLastName: user.lastName || "",
-        guestEmail: user.email || "",
-        status: "confirmed",
-        amountPaidCents: classItem.price * 100, // Convert pounds to cents
-        currency: "GBP",
-      };
-      createBookingMutation.mutate(bookingData, {
-        onSuccess: () => {
-          toast.success("Booking confirmed! You'll receive a confirmation email shortly.");
-          router.push("/bookings"); // Redirect to bookings page
-        },
-        onError: (error: Error) => {
-          toast.error(`Booking failed: ${error.message}`);
-        },
-      });
-    } else {
-      // Redirect to login page with return URL
-      router.push(`/login?returnUrl=/classes/${classIdOrSlug}`);
+      const { url } = await response.json();
+      window.location.href = url; // Redirect to Stripe Checkout
+    } catch (error) {
+      toast.error(`Error: ${error.message}`);
     }
   };
 
@@ -270,15 +228,8 @@ export default function ClassDetailPage() {
                         <p>Email: {authState.user?.email}</p>
                       </div>
                     </div>
-                    <Button onClick={handleLoginBooking} className="w-full" size="lg" disabled={createBookingMutation.isPending}>
-                      {createBookingMutation.isPending ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Creating Booking...
-                        </>
-                      ) : (
-                        `Book Now - ${formatPrice(classItem.price)}`
-                      )}
+                    <Button onClick={handleBooking} className="w-full" size="lg">
+                      Book Now - {formatPrice(classItem.price)}
                     </Button>
                   </div>
                 ) : (
@@ -286,15 +237,8 @@ export default function ClassDetailPage() {
                   <>
                     {!bookingType ? (
                       <div className="space-y-4">
-                        <Button onClick={handleLoginBooking} className="w-full" size="lg" disabled={createBookingMutation.isPending}>
-                          {createBookingMutation.isPending ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Creating Booking...
-                            </>
-                          ) : (
-                            "Login & Book"
-                          )}
+                        <Button onClick={handleBooking} className="w-full" size="lg">
+                          Login & Book
                         </Button>
                         <div className="relative">
                           <div className="absolute inset-0 flex items-center">
@@ -323,17 +267,10 @@ export default function ClassDetailPage() {
                           <Input id="email" type="email" value={guestForm.email} onChange={(e) => setGuestForm((prev) => ({ ...prev, email: e.target.value }))} placeholder="Enter your email" />
                         </div>
                         <div className="space-y-3 pt-4">
-                          <Button onClick={handleGuestBooking} className="w-full" size="lg" disabled={createBookingMutation.isPending}>
-                            {createBookingMutation.isPending ? (
-                              <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Creating Booking...
-                              </>
-                            ) : (
-                              `Proceed to Payment - ${formatPrice(classItem.price)}`
-                            )}
+                          <Button onClick={handleBooking} className="w-full" size="lg">
+                            Proceed to Payment - {formatPrice(classItem.price)}
                           </Button>
-                          <Button onClick={() => setBookingType(null)} variant="ghost" className="w-full" disabled={createBookingMutation.isPending}>
+                          <Button onClick={() => setBookingType(null)} variant="ghost" className="w-full">
                             Back
                           </Button>
                         </div>

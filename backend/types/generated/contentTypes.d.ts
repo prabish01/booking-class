@@ -402,18 +402,8 @@ export interface ApiBookingBooking extends Struct.CollectionTypeSchema {
     > &
       Schema.Attribute.Private;
     notes: Schema.Attribute.Text;
-    paymentAmount: Schema.Attribute.Decimal & Schema.Attribute.Required;
-    paymentStatus: Schema.Attribute.Enumeration<
-      ['PENDING', 'PAID', 'FAILED', 'REFUNDED']
-    > &
-      Schema.Attribute.Required &
-      Schema.Attribute.DefaultTo<'PENDING'>;
     publishedAt: Schema.Attribute.DateTime;
-    status: Schema.Attribute.Enumeration<
-      ['CONFIRMED', 'CANCELLED', 'COMPLETED', 'NO_SHOW']
-    > &
-      Schema.Attribute.Required &
-      Schema.Attribute.DefaultTo<'CONFIRMED'>;
+    stripePaymentId: Schema.Attribute.String & Schema.Attribute.Required;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -517,6 +507,33 @@ export interface ApiSiteSettingSiteSetting extends Struct.CollectionTypeSchema {
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     value: Schema.Attribute.Text & Schema.Attribute.Required;
+  };
+}
+
+export interface ApiStripeStripe extends Struct.SingleTypeSchema {
+  collectionName: 'stripes';
+  info: {
+    displayName: 'Stripe';
+    pluralName: 'stripes';
+    singularName: 'stripe';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::stripe.stripe'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
   };
 }
 
@@ -1091,6 +1108,7 @@ declare module '@strapi/strapi' {
       'api::booking.booking': ApiBookingBooking;
       'api::class-occurrence.class-occurrence': ApiClassOccurrenceClassOccurrence;
       'api::site-setting.site-setting': ApiSiteSettingSiteSetting;
+      'api::stripe.stripe': ApiStripeStripe;
       'api::video.video': ApiVideoVideo;
       'plugin::content-releases.release': PluginContentReleasesRelease;
       'plugin::content-releases.release-action': PluginContentReleasesReleaseAction;

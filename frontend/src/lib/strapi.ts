@@ -120,13 +120,12 @@ export interface Booking {
 
 export interface CreateBookingData {
   classOccurrence: number;
-  guestFirstName?: string;
-  guestLastName?: string;
-  guestEmail?: string;
-  guestPhone?: string;
-  status: "pending" | "confirmed" | "cancelled";
-  amountPaidCents?: number;
-  currency?: string;
+  user?: number; // User ID for authenticated bookings
+  bookingDate?: string;
+  status: "CONFIRMED" | "CANCELLED" | "COMPLETED" | "NO_SHOW";
+  paymentStatus: "PENDING" | "PAID" | "FAILED" | "REFUNDED";
+  paymentAmount: number; // Amount in pounds (decimal)
+  notes?: string;
 }
 
 export interface SiteSettings {
@@ -186,6 +185,12 @@ class StrapiAPI {
       headers: config.headers,
       body: config.body,
       bodyType: typeof config.body,
+    });
+    console.log("🔍 Final Request Configuration:", {
+      url,
+      method: config.method,
+      headers: config.headers,
+      body: config.body,
     });
 
     const response = await fetch(url, config);
@@ -301,7 +306,7 @@ class StrapiAPI {
     });
   }
 
-  // Get all upcoming classes
+  // Get all upcoming classes - public endpoint
   async getAllUpcomingClassOccurrences(): Promise<StrapiResponse<ClassOccurrence[]>> {
     const today = new Date().toISOString().split("T")[0];
     return this.request(`/class-occurrences?filters[date][$gte]=${today}&sort=date:asc&populate=thumbnail`);
@@ -312,11 +317,42 @@ class StrapiAPI {
     return this.request(`/class-occurrences/${id}?populate=thumbnail`);
   }
 
+  // Delete class occurrence
+  async deleteClassOccurrence(id: string): Promise<void> {
+    return this.request(`/class-occurrences/${id}`, {
+      method: "DELETE",
+    });
+  }
+
   // Bookings
-  async createBooking(data: Partial<Booking>): Promise<StrapiResponse<Booking>> {
-    return this.request("/bookings", {
+  async createBooking(data: CreateBookingData, token?: string): Promise<StrapiResponse<Booking>> {
+    const headers: Record<string, string> = {};
+
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    // Wrap the payload in a `data` key as required by the backend
+    const requestBody = {
+      data: {
+        classOccurrence: data.classOccurrence,
+        user: data.user,
+        status: data.status,
+        paymentStatus: data.paymentStatus,
+        paymentAmount: data.paymentAmount,
+        // Only include optional fields if they have values
+        ...(data.bookingDate && { bookingDate: data.bookingDate }),
+        ...(data.notes && { notes: data.notes }),
+      },
+    };
+
+    console.log("📦 Booking request payload:", JSON.stringify(requestBody, null, 2));
+
+    // CRITICAL: Use the actual requestBody, not hardcoded values!
+    return this.request("/bookings/create", {
       method: "POST",
-      body: JSON.stringify({ data }),
+      headers,
+      body: requestBody, // Pass the object directly - request method handles JSON.stringify
     });
   }
 

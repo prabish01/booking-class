@@ -39,24 +39,27 @@ export default function Hero() {
       </button>
 
       {/* Content */}
-      <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
-        <h1 className="text-5xl md:text-7xl font-bold text-white mb-6">
-          Dance<span className="text-saffron">.</span> Feel<span className="text-bollywood-pink">.</span> Connect<span className="text-bollywood-gold">!</span>
-        </h1>
+      <div className="relative z-10 text-center px-4 max-w-5xl mx-auto">
+        <div className=" backdrop-blur-sm p-8 rounded-3xl ">
+          <h1 className="text-6xl md:text-8xl font-bold mb-8 bg-gradient-to-r from-saffron via-bollywood-pink to-bollywood-gold bg-clip-text text-transparent animate-gradient-x">Dance. Feel. Connect!</h1>
 
-        <p className="text-xl md:text-2xl text-white/90 mb-8 max-w-2xl mx-auto leading-relaxed">Join Luna Shree for authentic Bollywood fusion classes in Glasgow. Experience the joy of movement, the rhythm of culture, and the power of dance.</p>
+          <p className="text-xl md:text-2xl text-white mb-12 max-w-3xl mx-auto leading-relaxed font-light">
+            Join Luna Shree for authentic Bollywood fusion classes in Glasgow.
+            <span className="block mt-2 text-saffron">Experience the joy of movement, the rhythm of culture, and the power of dance.</span>
+          </p>
 
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Link href="/classes">
-            <Button size="lg" className="text-lg px-8 py-6 bg-saffron hover:bg-saffron/90">
-              Book Your Class
-            </Button>
-          </Link>
-          <Link href="/about">
-            <Button size="lg" variant="outline" className="text-lg px-8 py-6 border-white text-white hover:bg-white hover:text-black">
-              Meet Luna
-            </Button>
-          </Link>
+          <div className="flex flex-col sm:flex-row gap-6 justify-center">
+            <Link href="/classes">
+              <Button size="lg" className="text-lg px-10 py-7 bg-gradient-to-r from-saffron to-bollywood-pink hover:from-bollywood-pink hover:to-saffron transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                Book Your Class
+              </Button>
+            </Link>
+            <Link href="/about">
+              <Button size="lg" variant="outline" className="text-lg px-10 py-7 border-2 border-white text-white hover:bg-white/10 hover:border-saffron transition-all duration-300 backdrop-blur-sm">
+                Meet Luna
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* Scroll Indicator */}

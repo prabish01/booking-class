@@ -25,35 +25,13 @@
       "inversedBy": "bookings",
       "required": true
     },
+    "stripePaymentId": {
+      "type": "string",
+      "required": true
+    },
     "bookingDate": {
       "type": "datetime",
       "default": "2025-09-06T04:00:00.000Z"
-    },
-    "status": {
-      "type": "enumeration",
-      "enum": [
-        "CONFIRMED",
-        "CANCELLED",
-        "COMPLETED",
-        "NO_SHOW"
-      ],
-      "default": "CONFIRMED",
-      "required": true
-    },
-    "paymentStatus": {
-      "type": "enumeration",
-      "enum": [
-        "PENDING",
-        "PAID",
-        "FAILED",
-        "REFUNDED"
-      ],
-      "default": "PENDING",
-      "required": true
-    },
-    "paymentAmount": {
-      "type": "decimal",
-      "required": true
     },
     "notes": {
       "type": "text"

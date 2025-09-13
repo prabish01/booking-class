@@ -1,4 +1,5 @@
 // import type { Core } from '@strapi/strapi';
+import Stripe from "stripe";
 
 export default {
   /**
@@ -7,7 +8,20 @@ export default {
    *
    * This gives you an opportunity to extend code.
    */
-  register(/* { strapi }: { strapi: Core.Strapi } */) {},
+  // register({ strapi }) {
+  //   const webhookPath = "/api/stripe/webhook/";
+
+  //   // Add a custom middleware for Stripe webhooks
+  //   strapi.server.app.use(async (ctx, next) => {
+  //     if (ctx.path === webhookPath && ctx.method === "POST") {
+  //       console.log("==================");
+  //       console.log(ctx);
+  //       console.log("==================");
+
+  //     }
+  //     await next();
+  //   });
+  // },
 
   /**
    * An asynchronous bootstrap function that runs before
@@ -60,10 +74,10 @@ export default {
           }
         }
 
-        console.log("✅ Public API permissions set successfully");
+        console.log("Public API permissions set successfully");
       }
     } catch (error) {
-      console.log("⚠️ Error setting permissions:", error.message);
+      console.log("Error setting permissions:", error.message);
     }
   },
 };
