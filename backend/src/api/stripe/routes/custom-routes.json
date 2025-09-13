@@ -1,0 +1,15 @@
+{
+  "routes": [
+    {
+      "method": "POST",
+      "path": "/stripe/webhook",
+      "handler": "stripe.webhook",
+      "config": {
+        "auth": false,
+        "policies": [],
+        "middlewares": ["api::stripe.stripe-webhook"],
+        "bodyParser": false
+      }
+    }
+  ]
+}
