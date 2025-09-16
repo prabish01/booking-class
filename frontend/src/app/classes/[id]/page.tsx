@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -158,134 +158,223 @@ export default function ClassDetailPage() {
   }
 
   return (
-    <div className="min-h-screen pt-16">
+    <div className="min-h-screen pt-16 bg-gray-50">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="container mx-auto px-4 py-6">
+          <Link href="/classes" className="inline-flex items-center text-gray-600 hover:text-gray-900 transition-colors duration-200">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            <span className="font-medium">Back to Classes</span>
+          </Link>
+        </div>
+      </div>
+
       <div className="container mx-auto px-4 py-8">
-        {/* Back Button */}
-        <Link href="/classes" className="inline-flex items-center text-muted-foreground hover:text-foreground mb-8">
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Classes
-        </Link>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          {/* Class Details */}
-          <div>
-            {/* Class Image */}
-            <div className="relative h-64 md:h-80 bg-gradient-to-br from-primary/20 to-bollywood-pink/20 rounded-lg overflow-hidden mb-6">
-              {classItem.thumbnail ? (
-                <Image src={getStrapiMediaURL(classItem.thumbnail.url)} alt={classItem.title} fill className="object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <Calendar className="h-24 w-24 text-primary" />
-                </div>
-              )}
-            </div>
-
-            <h1 className="text-3xl md:text-4xl font-bold mb-4">{classItem.title}</h1>
-
-            <div className="space-y-4 mb-8">
-              <div className="flex items-center text-lg">
-                <Calendar className="h-5 w-5 mr-3 text-primary" />
-                {formatDate(classItem.date)}
-              </div>
-              <div className="flex items-center text-lg">
-                <Clock className="h-5 w-5 mr-3 text-primary" />
-                {formatTimeFromString(classItem.startTime)} - {formatTimeFromString(classItem.endTime)} ({getDuration(classItem)})
-              </div>
-              <div className="flex items-center text-lg">
-                <MapPin className="h-5 w-5 mr-3 text-primary" />
-                {classItem.location}
-              </div>
-              {classItem.maxCapacity && (
-                <div className="flex items-center text-lg">
-                  <Users className="h-5 w-5 mr-3 text-primary" />
-                  {classItem.maxCapacity} spots available
-                </div>
-              )}
-            </div>
-
-            <div className="text-4xl font-bold text-primary mb-8">{formatPrice(classItem.price)}</div>
-
-            <div className="prose max-w-none">
-              <p className="text-lg text-muted-foreground leading-relaxed">{classItem.description || `Join Luna Shree for this exciting ${classItem.title} class. Experience the joy of Bollywood dance in a welcoming and energetic environment. All skill levels are welcome!`}</p>
-            </div>
+        <div className="max-w-6xl mx-auto">
+          {/* Page Title */}
+          <div className="text-center mb-8">
+            <h1 className="text-2xl font-semibold text-gray-900 mb-2">Complete Your Booking</h1>
+            <p className="text-gray-600">Review your class details and secure your spot</p>
           </div>
 
-          {/* Booking Section */}
-          <div>
-            <Card>
-              <CardHeader>
-                <CardTitle>Book This Class</CardTitle>
-                <CardDescription>{authState?.isAuthenticated ? `Welcome back, ${authState.user?.firstName}` : "Choose how you'd like to book your spot"}</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {authState?.isAuthenticated ? (
-                  // Logged-in user: Show direct booking
-                  <div className="space-y-4">
-                    <div className="p-4 bg-muted rounded-lg">
-                      <h4 className="font-medium mb-2">Booking Details</h4>
-                      <div className="space-y-1 text-sm text-muted-foreground">
-                        <p>Name: {authState.user?.firstName && authState.user?.lastName ? `${authState.user.firstName} ${authState.user.lastName}` : authState.user?.username || "Not provided"}</p>
-                        <p>Email: {authState.user?.email}</p>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Class Summary - Left Column */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Class Overview Card */}
+              <Card className="bg-white border border-gray-200 shadow-sm">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-lg font-semibold text-gray-900">Class Details</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-col sm:flex-row gap-6">
+                    {/* Class Image */}
+                    <div className="flex-shrink-0">
+                      <div className="relative w-full sm:w-32 h-32 bg-gradient-to-br from-saffron/10 to-bollywood-pink/10 rounded-lg overflow-hidden">
+                        {classItem.thumbnail ? (
+                          <Image src={getStrapiMediaURL(classItem.thumbnail.url)} alt={classItem.title} fill className="object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Calendar className="h-8 w-8 text-saffron" />
+                          </div>
+                        )}
                       </div>
                     </div>
-                    <Button onClick={handleBooking} className="w-full" size="lg">
-                      Book Now - {formatPrice(classItem.price)}
-                    </Button>
-                  </div>
-                ) : (
-                  // Not logged in: Show login/guest options
-                  <>
-                    {!bookingType ? (
-                      <div className="space-y-4">
-                        <Button onClick={handleBooking} className="w-full" size="lg">
-                          Login & Book
-                        </Button>
-                        <div className="relative">
-                          <div className="absolute inset-0 flex items-center">
-                            <span className="w-full border-t" />
-                          </div>
-                          <div className="relative flex justify-center text-xs uppercase">
-                            <span className="bg-background px-2 text-muted-foreground">Or</span>
-                          </div>
-                        </div>
-                        <Button onClick={() => setBookingType("guest")} variant="outline" className="w-full" size="lg">
-                          Book as Guest
-                        </Button>
-                      </div>
-                    ) : bookingType === "guest" ? (
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="firstName">First Name</Label>
-                          <Input id="firstName" value={guestForm.firstName} onChange={(e) => setGuestForm((prev) => ({ ...prev, firstName: e.target.value }))} placeholder="Enter your first name" />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="lastName">Last Name</Label>
-                          <Input id="lastName" value={guestForm.lastName} onChange={(e) => setGuestForm((prev) => ({ ...prev, lastName: e.target.value }))} placeholder="Enter your last name" />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="email">Email</Label>
-                          <Input id="email" type="email" value={guestForm.email} onChange={(e) => setGuestForm((prev) => ({ ...prev, email: e.target.value }))} placeholder="Enter your email" />
-                        </div>
-                        <div className="space-y-3 pt-4">
-                          <Button onClick={handleBooking} className="w-full" size="lg">
-                            Proceed to Payment - {formatPrice(classItem.price)}
-                          </Button>
-                          <Button onClick={() => setBookingType(null)} variant="ghost" className="w-full">
-                            Back
-                          </Button>
-                        </div>
-                      </div>
-                    ) : null}
-                  </>
-                )}
 
-                <div className="text-sm text-muted-foreground">
-                  <p>• Secure payment with Stripe</p>
-                  <p>• Instant booking confirmation</p>
-                  <p>• Cancel up to 24 hours before class</p>
-                </div>
-              </CardContent>
-            </Card>
+                    {/* Class Info */}
+                    <div className="flex-grow space-y-3">
+                      <h3 className="text-xl font-semibold text-gray-900">{classItem.title}</h3>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                        <div className="flex items-center text-gray-600">
+                          <Calendar className="h-4 w-4 mr-2 text-saffron" />
+                          <span>{formatDate(classItem.date)}</span>
+                        </div>
+                        <div className="flex items-center text-gray-600">
+                          <Clock className="h-4 w-4 mr-2 text-bollywood-pink" />
+                          <span>
+                            {formatTimeFromString(classItem.startTime)} - {formatTimeFromString(classItem.endTime)}
+                          </span>
+                        </div>
+                        <div className="flex items-center text-gray-600">
+                          <MapPin className="h-4 w-4 mr-2 text-saffron" />
+                          <span>{classItem.location}</span>
+                        </div>
+                        {classItem.maxCapacity && (
+                          <div className="flex items-center text-gray-600">
+                            <Users className="h-4 w-4 mr-2 text-bollywood-pink" />
+                            <span>{classItem.maxCapacity} spots available</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="text-sm text-gray-600">
+                        <span className="font-medium">Duration:</span> {getDuration(classItem)}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Class Description */}
+                  {classItem.description && (
+                    <div className="mt-6 pt-6 border-t border-gray-100">
+                      <h4 className="font-medium text-gray-900 mb-2">About This Class</h4>
+                      <p className="text-gray-600 text-sm leading-relaxed">{classItem.description}</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Customer Information Card */}
+              <Card className="bg-white border border-gray-200 shadow-sm">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-lg font-semibold text-gray-900">Customer Information</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {authState?.isAuthenticated ? (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <div className="flex items-start">
+                        <div className="flex-shrink-0">
+                          <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                            <Users className="h-4 w-4 text-green-600" />
+                          </div>
+                        </div>
+                        <div className="ml-3">
+                          <h4 className="text-sm font-medium text-green-800">Signed In</h4>
+                          <div className="mt-1 text-sm text-green-700">
+                            <p>{authState.user?.firstName && authState.user?.lastName ? `${authState.user.firstName} ${authState.user.lastName}` : authState.user?.username || "Account User"}</p>
+                            <p>{authState.user?.email}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {!bookingType ? (
+                        <div className="space-y-4">
+                          <p className="text-gray-600 text-sm">Choose how you&apos;d like to proceed with your booking:</p>
+                          <div className="space-y-3">
+                            <Button onClick={handleBooking} className="w-full justify-center bg-gradient-to-r from-saffron to-bollywood-pink hover:from-saffron/90 hover:to-bollywood-pink/90 text-white font-medium">
+                              Sign In to Book
+                            </Button>
+                            <Button onClick={() => setBookingType("guest")} variant="outline" className="w-full justify-center border-gray-300 hover:border-saffron hover:bg-saffron/5">
+                              Continue as Guest
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                              <Label htmlFor="firstName" className="text-sm font-medium text-gray-700">
+                                First Name *
+                              </Label>
+                              <Input id="firstName" value={guestForm.firstName} onChange={(e) => setGuestForm((prev) => ({ ...prev, firstName: e.target.value }))} placeholder="Enter first name" className="mt-1 focus:border-saffron focus:ring-saffron/20" required />
+                            </div>
+                            <div>
+                              <Label htmlFor="lastName" className="text-sm font-medium text-gray-700">
+                                Last Name *
+                              </Label>
+                              <Input id="lastName" value={guestForm.lastName} onChange={(e) => setGuestForm((prev) => ({ ...prev, lastName: e.target.value }))} placeholder="Enter last name" className="mt-1 focus:border-saffron focus:ring-saffron/20" required />
+                            </div>
+                          </div>
+                          <div>
+                            <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+                              Email Address *
+                            </Label>
+                            <Input id="email" type="email" value={guestForm.email} onChange={(e) => setGuestForm((prev) => ({ ...prev, email: e.target.value }))} placeholder="Enter email address" className="mt-1 focus:border-saffron focus:ring-saffron/20" required />
+                          </div>
+                          <Button onClick={() => setBookingType(null)} variant="ghost" className="text-sm text-gray-600 hover:text-gray-800">
+                            ← Back to options
+                          </Button>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Order Summary - Right Column */}
+            <div className="lg:col-span-1">
+              <div className="sticky top-8">
+                <Card className="bg-white border border-gray-200 shadow-sm">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-lg font-semibold text-gray-900">Order Summary</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Item Details */}
+                    <div className="pb-4 border-b border-gray-100">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex-grow">
+                          <h4 className="font-medium text-gray-900 text-sm">{classItem.title}</h4>
+                          <p className="text-xs text-gray-600 mt-1">{formatDate(classItem.date)}</p>
+                          <p className="text-xs text-gray-600">
+                            {formatTimeFromString(classItem.startTime)} - {formatTimeFromString(classItem.endTime)}
+                          </p>
+                        </div>
+                        <div className="text-right ml-4">
+                          <p className="font-semibold text-gray-900">{formatPrice(classItem.price)}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Total */}
+                    <div className="flex justify-between items-center py-2">
+                      <span className="text-base font-semibold text-gray-900">Total</span>
+                      <span className="text-xl font-bold text-gradient">{formatPrice(classItem.price)}</span>
+                    </div>
+
+                    {/* Complete Booking Button */}
+                    <div className="pt-4">
+                      {authState?.isAuthenticated || (bookingType === "guest" && guestForm.firstName && guestForm.lastName && guestForm.email) ? (
+                        <Button onClick={handleBooking} className="w-full bg-gradient-to-r from-saffron to-bollywood-pink hover:from-saffron/90 hover:to-bollywood-pink/90 text-white font-semibold py-3 shadow-lg hover:shadow-xl transition-all duration-300" size="lg">
+                          Complete Booking
+                        </Button>
+                      ) : (
+                        <Button disabled className="w-full bg-gray-300 text-gray-500 font-semibold py-3 cursor-not-allowed" size="lg">
+                          Complete Customer Info
+                        </Button>
+                      )}
+                    </div>
+
+                    {/* Security & Policies */}
+                    <div className="pt-4 border-t border-gray-100 space-y-2 text-xs text-gray-600">
+                      <div className="flex items-center">
+                        <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                        <span>SSL Secured Payment</span>
+                      </div>
+                      <div className="flex items-center">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                        <span>Instant Confirmation</span>
+                      </div>
+                      <div className="flex items-center">
+                        <div className="w-2 h-2 bg-orange-500 rounded-full mr-2"></div>
+                        <span>24hr Cancellation</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
           </div>
         </div>
       </div>
