@@ -1,3 +1,15 @@
+export interface Video {
+  id: number;
+  documentId: string;
+  title: string;
+  description?: string;
+  url: string;
+  featured?: boolean;
+  thumbnail?: StrapiMedia | null;
+  createdAt: string;
+  updatedAt: string;
+  publishedAt: string;
+}
 const STRAPI_URL = process.env.NEXT_PUBLIC_STRAPI_URL || "http://localhost:1337";
 
 export interface StrapiResponse<T> {
@@ -151,6 +163,18 @@ interface CustomRequestInit extends Omit<RequestInit, "body"> {
 }
 
 class StrapiAPI {
+  // Get single video by ID
+  async getVideo(id: string): Promise<StrapiResponse<Video>> {
+    return this.request(`/videos/${id}?populate=thumbnail`);
+  }
+  // Videos
+  async getVideos(params?: { featured?: boolean }): Promise<StrapiResponse<Video[]>> {
+    let query = "/videos?populate=thumbnail";
+    if (params?.featured !== undefined) {
+      query += `&filters[featured][$eq]=${params.featured}`;
+    }
+    return this.request(query);
+  }
   private baseURL: string;
 
   constructor() {

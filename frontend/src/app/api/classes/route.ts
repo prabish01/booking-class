@@ -1,16 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { strapiAPI } from "@/lib/strapi";
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url);
-    const startDate = searchParams.get("startDate") || undefined;
-    const endDate = searchParams.get("endDate") || undefined;
-
-    const result = await strapiAPI.getClassOccurrences({
-      startDate,
-      endDate,
-    });
+    const result = await strapiAPI.getAllUpcomingClassOccurrences();
 
     return NextResponse.json(result);
   } catch (error) {

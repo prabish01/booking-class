@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +16,6 @@ import { Calendar, MapPin, Clock, Users, Loader2, ArrowLeft } from "lucide-react
 
 export default function ClassDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const classIdOrSlug = params.id as string;
 
   // Use TanStack Query hooks
@@ -26,14 +25,6 @@ export default function ClassDetailPage() {
   const classItem = classResponse?.data;
 
   const [bookingType, setBookingType] = useState<"login" | "guest" | null>(null);
-  const [showPayment, setShowPayment] = useState(false);
-  const [pendingBookingId, setPendingBookingId] = useState<string | null>(null);
-  const [paymentData, setPaymentData] = useState<{
-    amount: number;
-    currency: string;
-    customerName: string;
-    customerEmail: string;
-  } | null>(null);
   const [guestForm, setGuestForm] = useState({
     firstName: "",
     lastName: "",
@@ -125,7 +116,13 @@ export default function ClassDetailPage() {
       const { url } = await response.json();
       window.location.href = url; // Redirect to Stripe Checkout
     } catch (error) {
-      toast.error(`Error: ${error.message}`);
+      let errorMsg = "Unknown error";
+      if (typeof error === "object" && error !== null && "message" in error) {
+        errorMsg = String((error as { message?: string }).message);
+      } else {
+        errorMsg = String(error);
+      }
+      toast.error(`Error: ${errorMsg}`);
     }
   };
 
