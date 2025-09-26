@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, XCircle, Loader2 } from "lucide-react";
 
-export default function BookingSuccessPage() {
+function BookingSuccessPageInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [status, setStatus] = useState<"loading" | "success" | "failed">("loading");
@@ -18,7 +18,6 @@ export default function BookingSuccessPage() {
 
   useEffect(() => {
     const sessionId = searchParams.get("session_id");
-    const bookingId = searchParams.get("booking_id");
 
     if (!sessionId) {
       setStatus("failed");
@@ -131,5 +130,13 @@ export default function BookingSuccessPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function BookingSuccessPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <BookingSuccessPageInner />
+    </Suspense>
   );
 }

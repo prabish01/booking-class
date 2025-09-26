@@ -10,7 +10,9 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 
-export default function LoginPage() {
+import { Suspense } from "react";
+
+function LoginPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const returnUrl = searchParams.get("returnUrl");
@@ -42,8 +44,6 @@ export default function LoginPage() {
 
     loginMutation.mutate(loginData, {
       onSuccess: () => {
-        // Login successful - redirect to returnUrl or classes page
-        // Use replace() instead of push() to prevent back button issues
         const redirectTo = returnUrl || "/classes";
         router.replace(redirectTo);
       },
@@ -138,5 +138,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginPageInner />
+    </Suspense>
   );
 }
